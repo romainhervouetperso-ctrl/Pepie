@@ -538,6 +538,7 @@ const AVCATS=[
 const AVKEYS=AVCATS.map(c=>c.k);
 const isAnimal=a=>!!(a&&a.animal&&a.animal!=='human'&&ANDEF[a.animal]);
 function avatar(a,size){
+  if(a&&a.photo&&photoOk(a.photo))return photoSVG(a,size);
   const st='stroke="'+INK+'" stroke-linecap="round" stroke-linejoin="round"',hc=a.hairc||'#2B1B14',hair=a.hair||'none';
   const sk=a.skin||'#F6C9A0',out=a.out||'#FFFFFF',fit=a.fit||'tee';
   const fb=f=>'fill="'+f+'"',fl=(f,w)=>'fill="'+f+'" stroke-width="'+(w||2.4)+'" '+st,ln=w=>'fill="none" stroke-width="'+(w||3)+'" '+st;
@@ -2171,7 +2172,7 @@ function opt(k,v,label,inner){
 function avEditorHTML(){
   const an=isAnimal(me.a),cats=AVCATS.filter(c=>!c.only||(c.only==='animal')===an);
   const cat=cats.filter(c=>c.k===AVT)[0]||cats[0];
-  const grid=cat.vals?cat.vals.map(v=>opt(cat.k,v,cat.label+' '+v,'<span class="dot" style="background:'+v+'"></span>')).join(''):cat.opts.map(x=>{const o={};o[cat.k]=x[0];return opt(cat.k,x[0],x[1],avatar(Object.assign({},me.a,o),54))}).join('');
+  const grid=cat.vals?cat.vals.map(v=>opt(cat.k,v,cat.label+' '+v,'<span class="dot" style="background:'+v+'"></span>')).join(''):cat.opts.map(x=>{const o={};o[cat.k]=x[0];return opt(cat.k,x[0],x[1],avatar(Object.assign({},me.a,o,{photo:null}),54))}).join('');
   return '<div class="chips avtabs" role="tablist">'+cats.map(c=>'<button class="chip" data-act="avtab" data-k="'+c.k+'" aria-pressed="'+(c.k===cat.k)+'">'+c.label+'</button>').join('')+'</div><div class="opts">'+grid+'</div>';
 }
 function sw(k,label,sub){
@@ -2186,7 +2187,7 @@ function renderMe(){
   const cap=me.adult?'hard':'danger';
   let h='<div class="stage left"><div class="me-head"><span class="av" id="me-av">'+avatar(me.a,84)+'</span><div class="me-fields"><label class="lbl" for="myname">Ton nom</label><input id="myname" class="name-in" maxlength="24" value="'+esc(me.name)+'" autocomplete="off"><span class="small" id="myhandle">'+esc(u.handle)+'</span></div></div>'+
     '<div class="stats"><span><b>'+mineC+'</b> messages</span><span><b>'+mineP.length+'</b> publication'+(mineP.length>1?'s':'')+'</span><span><b>'+rx+'</b> réaction'+(rx>1?'s':'')+'</span></div></div>';
-  h+='<div class="stage left"><h2 class="h3">Ton avatar</h2><button class="btn ghost" data-act="avrand">'+ico('wand',18)+'Surprends-moi</button><div id="aved">'+avEditorHTML()+'</div></div>';
+  h+='<div class="stage left"><h2 class="h3">Ton avatar</h2>'+photoRowHTML()+'<button class="btn ghost" data-act="avrand">'+ico('wand',18)+'Surprends-moi</button><div id="aved">'+avEditorHTML()+'</div></div>';
   h+='<div class="stage left">'+
     '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix. </p>'+
     '<div class="lbl" style="margin-top:6px">Voix</div><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+'</button>').join('')+PIPER.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+' · '+x.mb+' Mo</button>').join('')+'</div>'+
@@ -2665,7 +2666,7 @@ const STK=[
 ];
 const stkOf=id=>STK.filter(s=>s[0]===id)[0];
 function stickerHTML(){
-  return sheetHead('Envoyer un sticker')+'<div class="opts">'+STK.map(s=>'<button class="opt" data-act="stksend" data-id="'+s[0]+'" aria-label="'+s[1]+'">'+avatar(Object.assign({},me.a,s[2]),64)+'</button>').join('')+'</div>';
+  return sheetHead('Envoyer un sticker')+'<div class="opts">'+STK.map(s=>'<button class="opt" data-act="stksend" data-id="'+s[0]+'" aria-label="'+s[1]+'">'+avatar(Object.assign({},me.a,s[2],{photo:null}),64)+'</button>').join('')+'</div>';
 }
 A.stksend=t=>{
   const c=conv(cur),s=stkOf(t.dataset.id);if(!c||!s)return;
@@ -2674,7 +2675,7 @@ A.stksend=t=>{
 };
 function stickerBubble(m){
   const s=stkOf(m.stk);if(!s)return '<p class="tr">'+esc(m.text)+'</p>';
-  return '<div class="stk"><span class="av">'+avatar(Object.assign({},userOf(m.f).a,s[2]),104)+'</span><b>'+esc(s[1])+'</b></div>';
+  return '<div class="stk"><span class="av">'+avatar(Object.assign({},userOf(m.f).a,s[2],{photo:null}),104)+'</span><b>'+esc(s[1])+'</b></div>';
 }
 
 /* ---------- Sondages ---------- */
@@ -3189,10 +3190,10 @@ function moodId(id){
 }
 function avMood(id){
   const a=avOf(id),m=moodId(id),s=m&&stkOf(m);
-  return s?Object.assign({},a,s[2]):a;
+  return s?Object.assign({},a,s[2],{photo:null}):a;
 }
 A.moodpick=()=>openSheet(sheetHead('Mon humeur du jour')+'<p class="small" style="margin:0">Ton avatar prend cette expression toute la journée, chez tes amis aussi.</p><div class="opts">'+
-  STK.map(s=>'<button class="opt" data-act="moodset" data-id="'+s[0]+'" aria-label="'+s[1]+'" aria-pressed="'+(moodId('me')===s[0])+'">'+avatar(Object.assign({},me.a,s[2]),64)+'</button>').join('')+'</div>'+
+  STK.map(s=>'<button class="opt" data-act="moodset" data-id="'+s[0]+'" aria-label="'+s[1]+'" aria-pressed="'+(moodId('me')===s[0])+'">'+avatar(Object.assign({},me.a,s[2],{photo:null}),64)+'</button>').join('')+'</div>'+
   '<button class="btn ghost w100" data-act="moodset" data-id="">Aucune humeur</button>');
 A.moodset=t=>{
   const id=t.dataset.id;
@@ -3488,7 +3489,7 @@ function drawRecap(r){
   if(r.best&&r.best.text){x.font='italic 600 36px system-ui,sans-serif';x.fillText('Vocal star : « '+String(r.best.text).slice(0,46)+(r.best.text.length>46?'…':'')+' »',70,y+30)}
   x.font='800 40px system-ui,sans-serif';x.fillText('Pépie · ici, on s’entend',70,H-70);
   return new Promise(res=>{
-    const svg=avatar(me.a,300).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
+    const svg=avatar(Object.assign({},me.a,{photo:null}),300).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
     const img=new Image();
     img.onload=()=>{x.drawImage(img,W-390,60,300,300);res(cv)};
     img.onerror=()=>res(cv);
@@ -4547,6 +4548,68 @@ document.addEventListener('input',ev=>{
   if(t.id==='rq')RS.q=t.value;
   if(t.id==='ra')RS.a=t.value;
 });
+/* ---------- Photo de profil ---------- */
+const PHOTO_BASE=()=>SB_URL+'/storage/v1/object/public/avatars/';
+function photoOk(u){return typeof u==='string'&&u.indexOf(PHOTO_BASE())===0&&u.length<220&&!/["'<>\s]/.test(u)}
+function photoSVG(a,size){
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" aria-hidden="true"><clipPath id="avp"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avp)"><rect width="100" height="100" fill="'+(a.bg||'#FFA98A')+'"/><image href="'+a.photo+'" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/></g></svg>';
+}
+function squareJpeg(file){
+  return new Promise((ok,ko)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      try{
+        const iw=img.naturalWidth,ih=img.naturalHeight,s=Math.min(iw,ih),cv=document.createElement('canvas');
+        cv.width=cv.height=256;
+        cv.getContext('2d').drawImage(img,(iw-s)/2,(ih-s)/2,s,s,0,0,256,256);
+        cv.toBlob(b=>{URL.revokeObjectURL(url);b?ok(b):ko(new Error('Image illisible.'))},'image/jpeg',.85);
+      }catch(e){ko(e)}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);ko(new Error('Image illisible.'))};
+    img.src=url;
+  });
+}
+const photoPath=u=>photoOk(u)?u.slice(PHOTO_BASE().length):'';
+function photoRowHTML(){
+  const has=photoOk(me.a&&me.a.photo);
+  return '<div class="srow"><div><b>Photo de profil</b><p class="small">'+(has
+    ?'Ta photo remplace ton avatar dessiné. Il reste disponible pour tes humeurs et stickers.'
+    :'Mets ta vraie photo à la place de l\'avatar. Elle sera visible de tous les utilisateurs de Pépie.')+'</p></div></div>'+
+    '<button class="btn '+(has?'ghost':'primary')+' w100" data-act="photo">'+'📷 '+(has?'Changer la photo':'Ajouter une photo')+'</button>'+
+    (has?'<button class="btn ghost w100" data-act="photodel">Retirer ma photo</button>':'');
+}
+async function setPhoto(file){
+  if(!file)return;
+  if(!/^image\//.test(file.type||'image/')){toast('Choisis une image.');return}
+  toast('Envoi de la photo…',6000);
+  try{
+    const blob=await squareJpeg(file);
+    const path=myId+'/'+Date.now()+'.jpg';
+    const up=await sb.storage.from('avatars').upload(path,blob,{contentType:'image/jpeg'});
+    if(up.error)throw up.error;
+    const pu=sb.storage.from('avatars').getPublicUrl(path);
+    const url=pu&&pu.data&&pu.data.publicUrl;
+    if(!photoOk(url))throw new Error('Adresse de photo invalide.');
+    const old=photoPath(me.a&&me.a.photo);
+    me.a=Object.assign({},me.a,{photo:url});
+    save();
+    if(old){try{sb.storage.from('avatars').remove([old])}catch(e){}}
+    toast('Photo enregistrée 📷');
+    if(view==='me')keepScroll(renderMe);
+  }catch(e){toast('Photo impossible : '+((e&&e.message)||'erreur'),4000)}
+}
+A.photo=()=>{
+  const i=document.createElement('input');i.type='file';i.accept='image/*';
+  i.onchange=()=>{if(i.files&&i.files[0])setPhoto(i.files[0])};
+  i.click();
+};
+A.photodel=()=>{
+  const old=photoPath(me.a&&me.a.photo);
+  me.a=Object.assign({},me.a);delete me.a.photo;save();
+  if(old){try{sb.storage.from('avatars').remove([old])}catch(e){}}
+  toast('Photo retirée.');
+  if(view==='me')keepScroll(renderMe);
+};
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4595,7 +4658,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792530492';
+const BUILD='1792530907';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
