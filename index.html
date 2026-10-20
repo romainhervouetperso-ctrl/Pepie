@@ -3674,4 +3674,22 @@ A.repgo=async t=>{
   const r=await sb.from('reports').insert({msg_id:m.id,conv_id:c.id,target:m.f==='me'?myId:m.f,reason:t.dataset.w});
   toast(r.error?'Signalement non envoyé.':'Merci, signalement envoyé ✔');
 };
+
+/* ---------- Mise à jour automatique ---------- */
+const BUILD='1792525310';
+async function checkUpdate(){
+  try{
+    if(typeof chatRec!=='undefined'&&chatRec)return;
+    if(typeof CAP!=='undefined'&&CAP)return;
+    const r=await fetch('ver.json?'+Date.now(),{cache:'no-store'});
+    const j=await r.json();
+    if(j&&j.v&&j.v!==BUILD){
+      toast('Mise à jour de Pépie…',1500);
+      setTimeout(()=>{const u=new URL(location.href);u.searchParams.set('_r',Date.now());location.replace(u.href)},900);
+    }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+setInterval(checkUpdate,300000);
+setTimeout(checkUpdate,4000);
 })();</script></body></html>
