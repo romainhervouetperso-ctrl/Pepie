@@ -739,7 +739,7 @@ function scanBanned(c,m,silent){
   c.scores[m.f]=(c.scores[m.f]||0)+1;
   if(!silent)c.msgs.push({id:uuid(),f:'sys',k:'sys',text:'Mot interdit : '+nameOf(m.f)+' a dit « '+c.banned+' » (+1)',t:Date.now(),rx:{},my:[]});
 }
-const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor','quiz','qs'];
+const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor','quiz','qs','media','oq'];
 function addMsg(c,m,pre){
   const id=m.id||uuid();
   m=Object.assign({id:id,t:Date.now(),rx:{},my:[]},m);
@@ -1527,6 +1527,8 @@ function msgHTML(c,ms,i,dayStart){
     inner+='<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
       '<button class="rd" data-act="mtrx" aria-expanded="'+!!open+'">'+ico('text',16)+'<span>'+(open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(open?'':' hidden')+'>'+words(m.text)+'</p>';
   }else if(m.stk){inner+=stickerBubble(m)}
+  else if(m.media){inner+=mediaHTML(m)+(m.text&&!/^(📷 Photo|🎬 Vidéo)$/.test(m.text)?'<p class="tr">'+esc(m.text)+'</p>':'')}
+  else if(m.oq){inner+=oqBubble(c,m)}
   else if(m.quiz){inner+=quizBubble(c,m)}
   else if(m.chal==='quizres'){inner+='<p class="tr">'+esc(m.text)+'</p>'}
   else if(m.poll){inner+=pollBubble(c,m)}
@@ -2573,6 +2575,8 @@ function plusHTML(c){
     card('chor','users','Chorale','Chacun ajoute sa voix','#C9B6FF')+
     card('capsule','lock','Capsule temporelle','Un message qui s\'ouvre plus tard','#34D3A8')+
     (parts(c).length>2||c.members.length>=1?card('duel','flame','Duel de roasts','Deux amis, le groupe vote','#FF5A5F'):'')+
+    card('media','plus','Photo / Vidéo','Depuis ta galerie ou l\'appareil photo','#FF8FA0')+
+    card('oq','help','Question ouverte','Chacun répond en vocal ou texte','#7CD6A5')+
     card('dispo','users','Qui est dispo ?','Sondage dispo en un tap','#7CD6A5')+
     card('quiz','help','Quiz perso','Connais-tu bien moi ?','#FFB86B')+
     card('sched','lock','Message programmé','Envoi à l\'heure choisie','#8FB0FF')+
@@ -2586,6 +2590,8 @@ A.plgo=t=>{
   else if(k==='truth'||k==='imit'||k==='chor')sendChallenge(c,k);
   else if(k==='capsule'){CP={kind:'text',days:7,text:''};setSheet(capsuleFormHTML(c))}
   else if(k==='duel'){DU={a:null,b:null};setSheet(duelHTML(c))}
+  else if(k==='media'){closeSheet();pickMedia()}
+  else if(k==='oq'){OQ='';setSheet(oqFormHTML())}
   else if(k==='dispo')setSheet(dispoHTML());
   else if(k==='quiz'){QF=[0,1,2].map(()=>({t:'',o:['','',''],a:0}));setSheet(quizFormHTML())}
   else if(k==='sched'){SC={at:null,text:'',list:[]};setSheet(schedHTML());schedList(c)}
@@ -3506,4 +3512,118 @@ A.recshare=()=>{
 };
 
 A.blindgo=()=>{const c=conv(cur);BL=null;if(!blindNext(c)){toast('Il faut au moins un vocal reçu dans cette discussion.');return}openSheet(blindHTML())};
+/* =====================================================================
+   Pépie v6 : photos / vidéos et questions ouvertes
+   ===================================================================== */
+(function(){
+  const st=document.createElement('style');
+  st.textContent=
+  '.mmedia{display:block;max-width:240px;border-radius:14px;overflow:hidden;background:var(--line);position:relative;min-height:90px}'+
+  '.mmedia img,.mmedia video{display:block;width:100%;max-height:320px;object-fit:cover;background:#000}'+
+  '.mmedia .pl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.7}'+
+  '#mview{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}'+
+  '#mview img,#mview video{max-width:100%;max-height:100%}#mview .x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:#fff;border-radius:999px;width:40px;height:40px;border:0;font-size:18px}'+
+  '.oq{display:flex;flex-direction:column;gap:6px;min-width:200px}.oq .q{font:800 15px var(--font-body);margin:0}.oq .ans{border-top:1px dashed var(--line);padding-top:6px;display:flex;gap:8px;align-items:center}.oq .ans .t{flex:1;font-size:13px}';
+  document.head.appendChild(st);
+})();
+
+const MEDIA_MAX=20*1024*1024;
+function mediaHTML(m){
+  const md=m.media,loc=m.localMedia;
+  const tag=md.t==='video'?'video':'img';
+  return '<div class="mmedia" data-mp="'+esc(md.path)+'" data-mt="'+md.t+'"'+(loc?' data-loc="'+esc(loc)+'"':'')+(md.w&&md.h?' style="aspect-ratio:'+md.w+'/'+md.h+'"':'')+'><span class="pl">'+(md.t==='video'?'🎬':'📷')+'</span></div>';
+}
+function hydrateMedia(){
+  document.querySelectorAll('.mmedia:not([data-ok])').forEach(el=>{
+    el.dataset.ok='1';
+    const t=el.dataset.mt,go=src=>{
+      el.innerHTML=t==='video'?'<video src="'+src+'" controls playsinline preload="metadata"></video>':'<img data-act="mview" data-src="'+src+'" src="'+src+'" alt="Photo" loading="lazy">';
+    };
+    if(el.dataset.loc){go(el.dataset.loc);return}
+    mediaUrl(el.dataset.mp).then(go).catch(()=>{el.innerHTML='<span class="pl">Média indisponible</span>';delete el.dataset.ok});
+  });
+}
+const mUrlCache={};
+async function mediaUrl(path){
+  const c=mUrlCache[path];if(c&&c.exp>Date.now())return c.url;
+  const r=await sb.storage.from('media').createSignedUrl(path,3600);
+  if(r.error||!r.data)throw (r.error||new Error('url'));
+  mUrlCache[path]={url:r.data.signedUrl,exp:Date.now()+3000000};return r.data.signedUrl;
+}
+const _rm=renderMsgs;
+renderMsgs=function(s){_rm(s);hydrateMedia()};
+
+A.mview=t=>{
+  const src=t.dataset.src;if(!src)return;
+  const v=document.createElement('div');v.id='mview';
+  v.innerHTML='<button class="x" data-act="mviewx" aria-label="Fermer">✕</button><img src="'+src+'" alt="Photo">';
+  document.body.appendChild(v);
+};
+A.mviewx=()=>{const v=$('#mview');if(v)v.remove()};
+
+function pickMedia(){
+  let i=$('#mfile');
+  if(!i){i=document.createElement('input');i.type='file';i.id='mfile';i.accept='image/*,video/*';i.style.display='none';i.addEventListener('change',()=>{const f=i.files&&i.files[0];i.value='';if(f)sendMediaFile(f)});document.body.appendChild(i)}
+  i.click();
+}
+function shrinkImage(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{
+      const M=1400,k=Math.min(1,M/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      const x=cv.getContext('2d');if(!x){URL.revokeObjectURL(url);rej(new Error('canvas'));return}
+      x.drawImage(im,0,0,w,h);URL.revokeObjectURL(url);
+      cv.toBlob(b=>b?res({blob:b,w:w,h:h}):rej(new Error('blob')),'image/jpeg',.82);
+    };
+    im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};
+    im.src=url;
+  });
+}
+async function sendMediaFile(file){
+  const c=conv(cur);if(!c)return;
+  const isVid=/^video\//.test(file.type),isImg=/^image\//.test(file.type);
+  if(!isVid&&!isImg){toast('Choisis une photo ou une vidéo.');return}
+  let blob=file,w=0,h=0,ext,mime=file.type;
+  try{
+    if(isImg){
+      if(file.type==='image/gif'&&file.size<=MEDIA_MAX){ext='gif'}
+      else{const r=await shrinkImage(file);blob=r.blob;w=r.w;h=r.h;ext='jpg';mime='image/jpeg'}
+    }else{
+      if(file.size>MEDIA_MAX){toast('Vidéo trop lourde (20 Mo maximum, soit environ 20 secondes). Raccourcis-la ou filme directement depuis Pépie.',5000);return}
+      ext=/quicktime/.test(mime)?'mov':(/webm/.test(mime)?'webm':'mp4');
+      if(!/^video\/(mp4|quicktime|webm)$/.test(mime)){toast('Format vidéo non pris en charge.');return}
+    }
+  }catch(e){toast("Impossible de préparer ce fichier.");return}
+  const id=uuid(),path=c.id+'/'+id+'.'+ext,cap=(chatDraft||'').trim();
+  chatDraft='';renderComposer();
+  toast(isVid?'Envoi de la vidéo…':'Envoi de la photo…');
+  const up=await sb.storage.from('media').upload(path,blob,{contentType:mime});
+  if(up.error){toast("Envoi impossible : "+up.error.message);return}
+  addMsg(c,{id:id,f:'me',k:'text',text:cap||(isVid?'🎬 Vidéo':'📷 Photo'),media:{t:isVid?'video':'image',path:path,w:w,h:h},localMedia:URL.createObjectURL(blob)});
+  if(view==='chat'&&cur===c.id)renderMsgs(true);
+}
+
+/* ---------- Question ouverte ---------- */
+let OQ='';
+function oqFormHTML(){
+  return sheetHead('Question ouverte')+'<p class="small" style="margin:0">Pose une question : chacun répond en vocal ou par écrit, les réponses s\'affichent sous la question.</p>'+
+    '<div class="cform"><input id="oqq" maxlength="120" placeholder="Ex : ton meilleur souvenir de l\'été ?" value="'+esc(OQ)+'" aria-label="Question"><button class="btn primary" data-act="oqsend" style="padding:10px 16px">Envoyer</button></div>'+
+    '<div class="chips">'+['Quel est ton plus beau souvenir de cette année ?','Si tu gagnais au loto demain, tu fais quoi ?','Raconte ta pire honte, vite !','Un conseil pour la semaine ?'].map(q=>'<button class="chip" data-act="oqpre" data-q="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div>';
+}
+A.oqpre=t=>{const i=$('#oqq');if(i)i.value=t.dataset.q};
+A.oqsend=()=>{
+  const q=(($('#oqq')||{}).value||'').trim();if(!q){toast('Écris ta question.');return}
+  const c=conv(cur);addMsg(c,{f:'me',k:'text',text:q,oq:1});closeSheet();renderMsgs(true);
+};
+function oqBubble(c,m){
+  const ans=c.msgs.filter(x=>x.re===m.id&&x.k!=='sys'&&!x.oq);
+  return '<div class="oq"><span class="small">❓ Question ouverte</span><p class="q">'+esc(m.text)+'</p>'+
+    '<button class="btn primary" data-act="oqans" style="padding:8px 14px">Répondre</button>'+
+    (ans.length?'<span class="small">'+ans.length+' réponse'+(ans.length>1?'s':'')+'</span>'+ans.slice(-6).map(a=>'<div class="ans" data-key="m:'+c.id+':'+a.id+'"><b class="small">'+esc(a.f==='me'?'Toi':nameOf(a.f))+'</b><span class="t">'+esc(snip(a.text,70))+'</span><button class="play xs" data-act="play" aria-label="Écouter"><span class="pi" data-sz="14">'+ico('play',14)+'</span></button></div>').join(''):'')+'</div>';
+}
+A.oqans=t=>{
+  const id=t.closest('[data-mid]').dataset.mid;
+  replyTo=id;renderReplyBar();const i=$('#minput');if(i)i.focus();
+};
 })();</script></body></html>
