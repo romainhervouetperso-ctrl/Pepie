@@ -4049,7 +4049,6 @@ A.qg=t=>{
   if(k==='badges')return A.badges();
   if(k==='books')return A.books();
   if(!convs.length){toast('Invite d\'abord un ami pour jouer ensemble.',3500);return}
-  if(convs.length===1){qgLaunch(convs[0].id,k);return}
   const g=GAMES.find(x=>x[0]===k);
   const list=convs.slice().sort((a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)});
   openSheet(sheetHead(g[1]+' '+g[2])+'<div class="lbl">Dans quelle discussion ?</div><div class="list" style="gap:8px">'+
@@ -4111,7 +4110,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792527409';
+const BUILD='1792527760';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
