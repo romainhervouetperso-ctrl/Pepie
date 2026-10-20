@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pépie : la messagerie qui écrit tes vocaux</title>
-<meta name="description" content="Parle, écris, rigole. Les vocaux s'écrivent tout seuls et les textes se font écouter. Discussions à deux ou en groupe, résumés, roasts et jeux.">
+<meta name="description" content="Ici, on s’entend. Les vocaux s'écrivent tout seuls et les textes se font écouter. Discussions à deux ou en groupe, résumés, roasts et jeux.">
 <link rel="canonical" href="https://romainhervouetperso-ctrl.github.io/Pepie/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pépie">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:title" content="Pépie : parle, écris, rigole">
+<meta property="og:title" content="Pépie : ici, on s’entend">
 <meta property="og:description" content="La messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter. Rejoins-moi !">
 <meta property="og:url" content="https://romainhervouetperso-ctrl.github.io/Pepie/">
 <meta property="og:image" content="https://romainhervouetperso-ctrl.github.io/Pepie/og.png">
@@ -18,7 +18,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Logo Pépie : une bulle de message avec des ondes sonores">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pépie : parle, écris, rigole">
+<meta name="twitter:title" content="Pépie : ici, on s’entend">
 <meta name="twitter:description" content="La messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter.">
 <meta name="twitter:image" content="https://romainhervouetperso-ctrl.github.io/Pepie/og.png">
 <meta name="theme-color" content="#FFD23F">
@@ -1423,7 +1423,7 @@ function renderOnboard(){
   $('#v-onboard').innerHTML=
     '<form class="ob" id="obform" autocomplete="on">'+
     '<div class="logo"><svg viewBox="0 0 36 36" width="40" height="40" aria-hidden="true"><path d="M6 5h24a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H17l-7 6v-6H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="#FFD23F" stroke="#14142B" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 12v7M18 9v13M24 13v5" stroke="#14142B" stroke-width="3" stroke-linecap="round"/></svg><span>Pépie</span></div>'+
-    inviterBanner()+'<h1 class="big">Parle. Écris. Rigole.</h1>'+
+    inviterBanner()+'<h1 class="big">Ici, on s’entend.</h1>'+
     '<p class="hint" style="max-width:none">La messagerie où chaque vocal s\'écrit tout seul, et chaque texte peut se faire écouter.</p>'+
     '<div class="seg" role="group" aria-label="Connexion ou inscription"><button type="button" data-act="authmode" data-m="signup" aria-pressed="'+su+'">Créer un compte</button><button type="button" data-act="authmode" data-m="login" aria-pressed="'+(!su)+'">Me connecter</button></div>'+
     '<div class="stage left">'+
@@ -3486,7 +3486,7 @@ function drawRecap(r){
   x.textBaseline='alphabetic';let y=330;
   lines.forEach(l=>{x.font='700 54px system-ui,sans-serif';x.fillText(l[1],70,y);x.font='700 46px system-ui,sans-serif';x.fillText(l[0],160,y);y+=118});
   if(r.best&&r.best.text){x.font='italic 600 36px system-ui,sans-serif';x.fillText('Vocal star : « '+String(r.best.text).slice(0,46)+(r.best.text.length>46?'…':'')+' »',70,y+30)}
-  x.font='800 40px system-ui,sans-serif';x.fillText('Pépie · parle, écris, rigole',70,H-70);
+  x.font='800 40px system-ui,sans-serif';x.fillText('Pépie · ici, on s’entend',70,H-70);
   return new Promise(res=>{
     const svg=avatar(me.a,300).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
     const img=new Image();
