@@ -445,11 +445,11 @@ const I={
 function ico(n,sz){sz=sz||20;return '<svg class="ic" viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+I[n]+'</svg>'}
 
 /* ---------- Avatars ---------- */
-const INK='#14142B';
-const BGS=['#FFD23F','#34D3A8','#FF5A5F','#5B7CFA','#C9B6FF','#FFB86B','#8FD3FF','#FF8FA0'];
+const INK='#3B1A12';
+const BGS=['#FFA98A','#FFD23F','#7ED6B0','#9CC0FF','#C9B6FF','#FF8FA0','#FFE3D3','#34D3A8'];
 const SKINS=['#FADDC6','#F6C9A0','#E8B48A','#C98E63','#8D5A3C','#5A3825','#B7E4C7','#C9B6FF'];
 const HAIRCS=['#2B1B14','#14142B','#8D5A3C','#E8B84A','#FF5A5F','#C9B6FF','#34D3A8','#5B7CFA','#BFC3D9','#FFFFFF'];
-const OUTS=['#FFFFFF','#FF5A5F','#5B7CFA','#34D3A8','#FFD23F','#14142B','#C9B6FF'];
+const OUTS=['#FFFFFF','#FF5A5F','#2F5BFF','#34D3A8','#FFD23F','#14142B','#C9B6FF'];
 const PATS=[['none','Uni'],['dots','Pois'],['stripes','Rayures'],['rays','Rayons'],['stars','Étoiles']];
 const HAIRS=[['none','Chauve'],['short','Court'],['buzz','Rasé'],['long','Long'],['bob','Carré'],['curly','Bouclé'],['afro','Afro'],['mohawk','Crête'],['bun','Chignon'],['pony','Queue de cheval'],['pigtails','Couettes'],['tuft','Une mèche']];
 const EYES=[['dots','Yeux ronds'],['happy','Yeux rieurs'],['wide','Grands yeux'],['sleepy','Yeux endormis'],['wink','Clin d\'œil'],['hearts','Yeux en cœur'],['stars','Yeux étoilés'],['dizzy','Étourdi'],['anime','Yeux brillants'],['side','Regard en coin']];
@@ -460,19 +460,29 @@ const EXTRAS=[['none','Aucun'],['blush','Joues roses'],['freckles','Taches de ro
 const ACCS=[['none','Aucun'],['glasses','Lunettes'],['sunglasses','Lunettes de soleil'],['headphones','Casque'],['crown','Couronne'],['cap','Casquette'],['pirate','Pirate'],['party','Chapeau de fête'],['cowboy','Cowboy'],['flowers','Fleurs'],['bunny','Oreilles de lapin'],['cat','Oreilles de chat'],['devil','Cornes de diable'],['halo','Auréole'],['headband','Bandeau'],['beanie','Bonnet'],['clown','Nez de clown'],['wizard','Chapeau de magicien'],['chef','Toque']];
 const FITS=[['tee','T-shirt'],['hoodie','Sweat'],['stripes','Marinière'],['suit','Costume']];
 
-const ANIMALS=[['human','Humain'],['cat','Chat'],['dog','Chien'],['bunny','Lapin'],['fox','Renard'],['bear','Ours'],['panda','Panda'],['frog','Grenouille'],['owl','Hibou'],['pig','Cochon'],['lion','Lion'],['mouse','Souris'],['koala','Koala'],['monkey','Singe']];
-const ANDEF={cat:'#FFB86B',dog:'#E8B48A',bunny:'#FFFFFF',fox:'#FF8A3D',bear:'#8D5A3C',panda:'#FFFFFF',frog:'#7ED957',owl:'#B08968',pig:'#FF9EC0',lion:'#E8B84A',mouse:'#BFC3D9',koala:'#A9AEC4',monkey:'#A9703B'};
-const FURS=['#FFB86B','#FF8A3D','#E8B48A','#C98E63','#8D5A3C','#5A3825','#FFFFFF','#BFC3D9','#2B2B3B','#E8B84A','#FF9EC0','#7ED957','#C9B6FF'];
+const ANIMALS=[['human','Visage'],['bird','Pépie']];
+const ANDEF={bird:'#FFA98A',cat:'#FFB86B',dog:'#E8B48A',bunny:'#FFFFFF',fox:'#FF8A3D',bear:'#8D5A3C',panda:'#FFFFFF',frog:'#7ED957',owl:'#B08968',pig:'#FF9EC0',lion:'#E8B84A',mouse:'#BFC3D9',koala:'#A9AEC4',monkey:'#A9703B'};
+const FURS=['#FFA98A','#FFD23F','#7ED6B0','#9CC0FF','#C9B6FF','#FF8FA0','#FFFFFF','#34D3A8','#8D5A3C','#2B2B3B'];
+const BIRDTUFTS=[['none','Aucune'],['tuft','Une plume'],['mohawk','Trois plumes']];
 function mixc(h,t){const n=parseInt(h.slice(1),16),k=[n>>16&255,n>>8&255,n&255],i=[20,20,43];return '#'+k.map((v,j)=>('0'+Math.round(v*(1-t)+i[j]*t).toString(16)).slice(-2)).join('')}
 /* Animaux : [derrière la tête, tête, devant (museau, nez…)] */
-function animalSVG(an,fur,fl,ln,st){
+function animalSVG(an,fur,fl,ln,st,open,tuft){
   const dk=mixc(fur,.35),mz='#FFF4E6',pk='#FF9EC0',dark='#2B2B3B';
   let back='',head='<circle cx="50" cy="52" r="26" '+fl(fur,3)+'/>',front='';
   const circ=(x,y,r,f)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" '+fl(f,2.6)+'/>';
   const nose=(f)=>'<ellipse cx="50" cy="57" rx="4.2" ry="3" fill="'+(f||INK)+'" '+st+' stroke-width="1.6"/>';
   const muz=(c)=>'<ellipse cx="50" cy="63" rx="14" ry="10" '+fl(c||mz,2)+'/>';
   const whisk='<path d="M30 60l-11-2M30 64l-11 3M70 60l11-2M70 64l11 3" '+ln(1.8)+'/>';
-  if(an==='cat'){
+  if(an==='bird'){
+    const bl='#2F5BFF',belly=(fur==='#FFFFFF'||fur==='#FFD23F')?'#FFE9D6':'#FFF3EC';
+    back='<ellipse cx="21" cy="68" rx="9" ry="14" transform="rotate(25 21 68)" '+fl(fur,2.8)+'/><ellipse cx="79" cy="68" rx="9" ry="14" transform="rotate(-25 79 68)" '+fl(fur,2.8)+'/>';
+    if(tuft==='tuft')back+='<path d="M50 26Q42 8 55 9" '+ln(4)+'/>';
+    if(tuft==='mohawk')back+='<path d="M50 26Q44 8 37 12M50 26Q50 5 53 6M50 26Q58 8 65 12" '+ln(3.4)+'/>';
+    head='<path d="M50 22C28 22 20 42 20 60c0 20 14 32 30 32s30-12 30-32c0-18-8-38-30-38z" '+fl(fur,3.2)+'/><ellipse cx="50" cy="76" rx="19" ry="14" fill="'+belly+'"/>';
+    front='<ellipse cx="29" cy="62" rx="5" ry="3" fill="#FF7A8A" opacity=".5"/><ellipse cx="71" cy="62" rx="5" ry="3" fill="#FF7A8A" opacity=".5"/>'+
+      (open?'<path d="M42 57h16l-8 7z" fill="'+bl+'" '+st+' stroke-width="2.6"/><path d="M44 67h12l-6 8z" fill="'+bl+'" '+st+' stroke-width="2.6"/><path d="M45 64.5h10l-1.2 2.5h-7.6z" fill="'+INK+'"/>'
+           :'<path d="M42 58h16l-8 12z" fill="'+bl+'" '+st+' stroke-width="2.6"/><path d="M45.5 61h9" stroke="#fff" stroke-width="1.6" opacity=".55" stroke-linecap="round"/>');
+  }else if(an==='cat'){
     back='<path d="M24 44L25 12L47 29z" '+fl(fur,2.8)+'/><path d="M76 44L75 12L53 29z" '+fl(fur,2.8)+'/><path d="M30 36L30 22L40 30z" fill="'+pk+'"/><path d="M70 36L70 22L60 30z" fill="'+pk+'"/>';
     front=muz()+nose(pk)+whisk;
   }else if(an==='dog'){
@@ -516,21 +526,21 @@ function animalSVG(an,fur,fl,ln,st){
   return [back,head,front];
 }
 const AVCATS=[
-  {k:'animal',label:'Animal',opts:ANIMALS},
+  {k:'animal',label:'Style',opts:ANIMALS},
   {k:'bg',label:'Fond',vals:BGS},{k:'pat',label:'Motif',opts:PATS},
-  {k:'skin',label:'Peau',vals:SKINS,only:'human'},{k:'fur',label:'Pelage',vals:FURS,only:'animal'},
-  {k:'hair',label:'Coiffure',opts:HAIRS},{k:'hairc',label:'Couleur',vals:HAIRCS},
+  {k:'skin',label:'Peau',vals:SKINS,only:'human'},{k:'fur',label:'Plumage',vals:FURS,only:'animal'},
+  {k:'hair',label:'Coiffure',opts:HAIRS,only:'human'},{k:'hair',label:'Huppe',opts:BIRDTUFTS,only:'animal'},{k:'hairc',label:'Couleur',vals:HAIRCS,only:'human'},
   {k:'eyes',label:'Yeux',opts:EYES},{k:'brows',label:'Sourcils',opts:BROWS},
-  {k:'mouth',label:'Bouche',opts:MOUTHS},{k:'beard',label:'Barbe',opts:BEARDS},
+  {k:'mouth',label:'Bouche',opts:MOUTHS},{k:'beard',label:'Barbe',opts:BEARDS,only:'human'},
   {k:'extra',label:'Détails',opts:EXTRAS},{k:'acc',label:'Accessoire',opts:ACCS},
-  {k:'fit',label:'Tenue',opts:FITS},{k:'out',label:'Couleur tenue',vals:OUTS}
+  {k:'fit',label:'Tenue',opts:FITS,only:'human'},{k:'out',label:'Couleur tenue',vals:OUTS,only:'human'}
 ];
 const AVKEYS=AVCATS.map(c=>c.k);
 const isAnimal=a=>!!(a&&a.animal&&a.animal!=='human'&&ANDEF[a.animal]);
 function avatar(a,size){
   const st='stroke="'+INK+'" stroke-linecap="round" stroke-linejoin="round"',hc=a.hairc||'#2B1B14',hair=a.hair||'none';
   const sk=a.skin||'#F6C9A0',out=a.out||'#FFFFFF',fit=a.fit||'tee';
-  const fl=(f,w)=>'fill="'+f+'" stroke-width="'+(w||2.4)+'" '+st,ln=w=>'fill="none" stroke-width="'+(w||3)+'" '+st;
+  const fb=f=>'fill="'+f+'"',fl=(f,w)=>'fill="'+f+'" stroke-width="'+(w||2.4)+'" '+st,ln=w=>'fill="none" stroke-width="'+(w||3)+'" '+st;
   /* motif de fond */
   let pat='';
   if(a.pat==='dots')for(let y=14;y<100;y+=22)for(let x=(y%44?14:25);x<100;x+=22)pat+='<circle cx="'+x+'" cy="'+y+'" r="4" fill="#fff" opacity=".35"/>';
@@ -539,23 +549,23 @@ function avatar(a,size){
   if(a.pat==='stars')[[16,20],[84,26],[12,70],[88,66],[50,8]].forEach(p=>{pat+='<path transform="translate('+p[0]+' '+p[1]+') scale(.9)" d="M0-6l1.8 3.9 4.2.5-3.1 2.8.9 4.2L0 3l-3.8 2.4.9-4.2L-6 -1.6l4.2-.5z" fill="#fff" opacity=".7"/>'});
   /* cheveux derrière */
   let hb='',hf='';
-  if(hair==='long')hb='<path d="M22 52C14 18 36 10 50 10s36 8 28 42c0 14 4 26 8 36H14c4-10 8-22 8-36z" '+fl(hc)+'/>';
-  if(hair==='bob')hb='<path d="M21 60C12 20 34 12 50 12s38 8 29 48c-1 8-4 12-8 12H29c-4 0-7-4-8-12z" '+fl(hc)+'/>';
-  if(hair==='afro')hb='<circle cx="50" cy="38" r="31" '+fl(hc)+'/><circle cx="25" cy="48" r="13" '+fl(hc)+'/><circle cx="75" cy="48" r="13" '+fl(hc)+'/>';
-  if(hair==='pony')hb='<path d="M70 34c18 0 22 20 14 40-3-12-8-20-16-24z" '+fl(hc)+'/>';
-  if(hair==='pigtails')hb='<circle cx="19" cy="50" r="11" '+fl(hc)+'/><circle cx="81" cy="50" r="11" '+fl(hc)+'/>';
+  if(hair==='long')hb='<path d="M22 52C14 18 36 10 50 10s36 8 28 42c0 14 4 26 8 36H14c4-10 8-22 8-36z" '+fb(hc)+'/>';
+  if(hair==='bob')hb='<path d="M21 60C12 20 34 12 50 12s38 8 29 48c-1 8-4 12-8 12H29c-4 0-7-4-8-12z" '+fb(hc)+'/>';
+  if(hair==='afro')hb='<circle cx="50" cy="38" r="31" '+fb(hc)+'/><circle cx="25" cy="48" r="13" '+fb(hc)+'/><circle cx="75" cy="48" r="13" '+fb(hc)+'/>';
+  if(hair==='pony')hb='<path d="M70 34c18 0 22 20 14 40-3-12-8-20-16-24z" '+fb(hc)+'/>';
+  if(hair==='pigtails')hb='<circle cx="19" cy="50" r="11" '+fb(hc)+'/><circle cx="81" cy="50" r="11" '+fb(hc)+'/>';
   /* cheveux devant */
-  if(hair==='short'||hair==='pony')hf='<path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fl(hc)+'/>';
-  if(hair==='buzz')hf='<path d="M26 42C26 28 38 23 50 23s24 5 24 19c-6-8-14-11-24-11s-18 3-24 11z" '+fl(hc)+'/>';
-  if(hair==='long'||hair==='bob'||hair==='pigtails')hf='<path d="M24 50C21 26 36 20 50 20s29 6 26 30c-5-8-10-14-18-16-6 8-18 14-34 16z" '+fl(hc)+'/>';
-  if(hair==='afro')hf='<path d="M26 44C26 30 38 25 50 25s24 5 24 19c-8-6-16-8-24-8s-16 2-24 8z" '+fl(hc)+'/>';
-  if(hair==='curly')[[30,34],[40,27],[50,25],[60,27],[70,34],[26,44],[74,44]].forEach(p=>{hf+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="9" '+fl(hc)+'/>'});
-  if(hair==='mohawk')hf='<path d="M41 30L43 4l7 14 7-14 2 26z" '+fl(hc)+'/>';
-  if(hair==='bun')hf='<circle cx="50" cy="14" r="10" '+fl(hc)+'/><path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fl(hc)+'/>';
+  if(hair==='short'||hair==='pony')hf='<path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fb(hc)+'/>';
+  if(hair==='buzz')hf='<path d="M26 42C26 28 38 23 50 23s24 5 24 19c-6-8-14-11-24-11s-18 3-24 11z" '+fb(hc)+'/>';
+  if(hair==='long'||hair==='bob'||hair==='pigtails')hf='<path d="M24 50C21 26 36 20 50 20s29 6 26 30c-5-8-10-14-18-16-6 8-18 14-34 16z" '+fb(hc)+'/>';
+  if(hair==='afro')hf='<path d="M26 44C26 30 38 25 50 25s24 5 24 19c-8-6-16-8-24-8s-16 2-24 8z" '+fb(hc)+'/>';
+  if(hair==='curly')[[30,34],[40,27],[50,25],[60,27],[70,34],[26,44],[74,44]].forEach(p=>{hf+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="9" '+fb(hc)+'/>'});
+  if(hair==='mohawk')hf='<path d="M41 30L43 4l7 14 7-14 2 26z" '+fb(hc)+'/>';
+  if(hair==='bun')hf='<circle cx="50" cy="14" r="10" '+fb(hc)+'/><path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fb(hc)+'/>';
   if(hair==='tuft')hf='<path d="M50 27q-8-14 2-16M50 27q6-12 14-8" '+ln(3.5).replace(INK,hc)+'/><path d="M50 27q-8-14 2-16M50 27q6-12 14-8" '+ln(1.2)+'/>';
   /* tenue */
   const sh='M10 106c2-20 16-30 40-30s38 10 40 30z';
-  let body='<clipPath id="avs"><path d="'+sh+'"/></clipPath><path d="'+sh+'" '+fl(out,3)+'/><g clip-path="url(#avs)">';
+  let body='<clipPath id="avs"><path d="'+sh+'"/></clipPath><path d="'+sh+'" '+fb(out)+'/><g clip-path="url(#avs)">';
   const light=out==='#FFFFFF'||out==='#FFD23F'||out==='#C9B6FF';
   if(fit==='stripes')for(let y=80;y<100;y+=7)body+='<path d="M0 '+y+'h100" stroke="'+(out==='#14142B'?'#fff':INK)+'" stroke-width="3" opacity=".8"/>';
   body+='</g>';
@@ -563,8 +573,9 @@ function avatar(a,size){
   if(fit==='hoodie')body+='<path d="M34 77q16 14 32 0" '+ln(3.5)+'/><path d="M45 85v9M55 85v9" '+ln(2.5)+'/>';
   if(fit==='suit')body+='<path d="M40 77l10 13 10-13z" fill="#fff" '+st+' stroke-width="2.4"/><path d="M50 82l-3.5 8 3.5 8 3.5-8z" fill="#FF5A5F" '+st+' stroke-width="2"/>';
   /* visage */
-  let face='<circle cx="25" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="75" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="50" cy="52" r="26" '+fl(sk,3)+'/>';
-  if(isAnimal(a)){const an=animalSVG(a.animal,a.fur||ANDEF[a.animal],fl,ln,st);hb=an[0]+hb;face=an[1]+an[2]}
+  let face='<circle cx="25" cy="54" r="5" '+fb(sk)+'/><circle cx="75" cy="54" r="5" '+fb(sk)+'/><circle cx="50" cy="52" r="26" '+fb(sk)+'/>';
+  const bird=isAnimal(a);
+  if(bird){const op=['open','o','shout','grin','tongue','fangs'].indexOf(a.mouth)>=0;const an=animalSVG('bird',a.fur||ANDEF[a.animal]||ANDEF.bird,fl,ln,st,op,a.hair);hb=an[0];hf='';body='';face=an[1]+an[2]}
   /* détails */
   let ex='';
   if(a.extra==='blush')ex='<ellipse cx="32" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/><ellipse cx="68" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/>';
@@ -581,7 +592,7 @@ function avatar(a,size){
   if(a.brows==='sad')br='<path d="M34 42l11-4M66 42l-11-4" '+ln(3)+'/>';
   if(a.brows==='thick')br='<path d="M34 41l11-1M55 40l11 1" '+ln(5)+'/>';
   /* yeux */
-  const E=a.eyes||'dots',heart=(x,y)=>'<path transform="translate('+x+' '+y+') scale(.62)" d="M0 9C-11 1-11-9-4-9c3 0 4 2 4 3 0-1 1-3 4-3 7 0 7 10-4 18z" fill="#FF5A5F" '+st+' stroke-width="2.6"/>';
+  const E=a.eyes||(bird?'wide':'dots'),heart=(x,y)=>'<path transform="translate('+x+' '+y+') scale(.62)" d="M0 9C-11 1-11-9-4-9c3 0 4 2 4 3 0-1 1-3 4-3 7 0 7 10-4 18z" fill="#FF5A5F" '+st+' stroke-width="2.6"/>';
   const star=(x,y)=>'<path transform="translate('+x+' '+y+') scale(.85)" d="M0-8l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L0 4l-5 2.8 1.2-5.6-4.2-3.8 5.6-.6z" fill="#FFD23F" '+st+' stroke-width="2"/>';
   let e='';
   if(E==='dots')e='<circle cx="41" cy="50" r="3" fill="'+INK+'"/><circle cx="59" cy="50" r="3" fill="'+INK+'"/>';
@@ -596,13 +607,14 @@ function avatar(a,size){
   if(E==='side')e='<circle cx="41" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="59" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="43.4" cy="50.4" r="2.6" fill="'+INK+'"/><circle cx="61.4" cy="50.4" r="2.6" fill="'+INK+'"/>';
   /* barbe */
   let bd='';
-  if(a.beard==='full')bd='<path d="M25 58c0 20 12 24 25 24s25-4 25-24c-4 8-12 10-25 10s-21-2-25-10z" '+fl(hc)+'/>';
-  if(a.beard==='goatee')bd='<path d="M43 69q7 12 14 0z" '+fl(hc)+'/>';
-  if(a.beard==='mustache'||a.beard==='handle'||a.beard==='full')bd+='<path d="M37 61q6-6 13-2 7-4 13 2-6 7-13 3-7 4-13-3z" '+fl(hc,2.2)+'/>';
+  if(a.beard==='full')bd='<path d="M25 58c0 20 12 24 25 24s25-4 25-24c-4 8-12 10-25 10s-21-2-25-10z" '+fb(hc)+'/>';
+  if(a.beard==='goatee')bd='<path d="M43 69q7 12 14 0z" '+fb(hc)+'/>';
+  if(a.beard==='mustache'||a.beard==='handle'||a.beard==='full')bd+='<path d="M37 61q6-6 13-2 7-4 13 2-6 7-13 3-7 4-13-3z" '+fb(hc)+'/>';
   if(a.beard==='handle')bd+='<path d="M37 61q-5-1-4-6M63 61q5-1 4-6" '+ln(2.4)+'/>';
   /* bouche */
   const M=a.mouth||'smile';
   let m='';
+  if(bird)bd='';
   if(M==='smile')m='<path d="M41 60q9 10 18 0" '+ln(3)+'/>';
   if(M==='open')m='<path d="M42 59h16q0 12-8 12t-8-12z" fill="'+INK+'" '+st+' stroke-width="2"/>';
   if(M==='o')m='<ellipse cx="50" cy="64" rx="4" ry="5" fill="'+INK+'"/>';
@@ -635,13 +647,13 @@ function avatar(a,size){
   if(A==='clown')x='<circle cx="50" cy="58" r="6" fill="#FF5A5F" '+st+' stroke-width="2.2"/><circle cx="48.3" cy="56.3" r="1.6" fill="#fff" opacity=".8"/>';
   if(A==='wizard')x='<path d="M50 -2L28 36h44z" fill="#7B5CFF" stroke-width="2.6" '+st+'/><path d="M18 38q32-10 64 0-6 6-32 6t-32-6z" fill="#7B5CFF" stroke-width="2.6" '+st+'/><path transform="translate(50 22) scale(.8)" d="M0-8l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L0 4l-5 2.8 1.2-5.6-4.2-3.8 5.6-.6z" fill="#FFD23F"/>';
   if(A==='chef')x='<path d="M32 38v-9a10 10 0 0 1 8-16 10 10 0 0 1 20 0 10 10 0 0 1 8 16v9z" fill="#fff" stroke-width="2.6" '+st+'/><path d="M32 36h36" '+ln(2)+'/>';
-  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" aria-hidden="true"><clipPath id="avc"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avc)"><rect width="100" height="100" fill="'+(a.bg||'#34D3A8')+'"/>'+pat+hb+body+face+hf+ex+br+e+bd+'<g class="am">'+m+'</g>'+x+'</g></svg>';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" aria-hidden="true"><clipPath id="avc"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avc)"><rect width="100" height="100" fill="'+(a.bg||'#34D3A8')+'"/>'+pat+hb+body+face+hf+ex+br+e+bd+'<g class="am">'+(bird?'':m)+'</g>'+x+'</g></svg>';
 }
 function randomAvatar(){
   const r=()=>Math.random();
-  const an=r()<.45?pick(ANIMALS.slice(1))[0]:'human';
+  const an=r()<.5?'bird':'human';
   return {animal:an,bg:pick(BGS),pat:r()<.35?pick(PATS)[0]:'none',skin:pick(SKINS.slice(0,6)),
-    hair:r()<.85?pick(HAIRS.slice(1))[0]:'none',hairc:pick(HAIRCS),
+    hair:an==='bird'?pick(['none','tuft','mohawk']):(r()<.85?pick(HAIRS.slice(1))[0]:'none'),fur:an==='bird'?pick(FURS):undefined,hairc:pick(HAIRCS),
     eyes:pick(EYES)[0],brows:r()<.6?pick(BROWS.slice(1))[0]:'none',mouth:pick(MOUTHS)[0],
     beard:r()<.15?pick(BEARDS.slice(1))[0]:'none',extra:r()<.4?pick(EXTRAS.slice(1))[0]:'none',
     acc:r()<.65?pick(ACCS.slice(1))[0]:'none',fit:pick(FITS)[0],out:pick(OUTS)};
@@ -4583,7 +4595,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792529748';
+const BUILD='1792530492';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
