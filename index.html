@@ -913,12 +913,12 @@ function renderOnboard(){
     '<p class="hint" style="max-width:none">La messagerie où chaque vocal s\'écrit tout seul, et chaque texte peut se faire écouter.</p>'+
     '<div class="seg" role="group" aria-label="Connexion ou inscription"><button type="button" data-act="authmode" data-m="signup" aria-pressed="'+su+'">Créer un compte</button><button type="button" data-act="authmode" data-m="login" aria-pressed="'+(!su)+'">Me connecter</button></div>'+
     '<div class="stage left">'+
-    (su?'<div class="me-head"><span class="av" id="ob-av">'+avatar(obAvatar,84)+'</span><div class="me-fields"><label class="lbl" for="obname">Ton pseudo (affiché)</label><input id="obname" class="name-in" maxlength="24" placeholder="Comment on t\'appelle ?" value="'+esc(me.name)+'" autocomplete="nickname"></div></div>'+
+    (su?'<div class="me-head"><span class="av" id="ob-av">'+avatar(obAvatar,84)+'</span><div class="me-fields"><label class="lbl" for="obname">Ton pseudo (affiché)</label><input id="obname" class="name-in" maxlength="24" placeholder="Ton pseudo" value="'+esc(me.name)+'" autocomplete="nickname"></div></div>'+
       '<button type="button" class="btn ghost" data-act="obrand">'+ico('wand',18)+'Surprends-moi</button>':'')+
     '<label class="lbl" for="obhandle">Identifiant (pour te retrouver)</label><input id="obhandle" class="inp" maxlength="20" placeholder="ex : camille.v" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username">'+
     '<label class="lbl" for="obpass">Mot de passe</label><input id="obpass" class="inp" type="password" minlength="6" maxlength="72" placeholder="6 caractères minimum" autocomplete="'+(su?'new-password':'current-password')+'">'+
     (su?'<label class="chk"><input type="checkbox" id="obadult"><span>J\'ai 18 ans ou plus. Cela débloque le niveau Hard-core des roasts.</span></label>'+
-      '<p class="small" style="margin:0">Pas d\'adresse e-mail demandée : note bien ton mot de passe, il ne pourra pas être réinitialisé. Les fonctions IA n\'envoient une conversation que quand tu les lances.</p>':'')+
+      '<p class="small" style="margin:0">Pas d\'adresse e-mail demandée : note bien ton mot de passe, il ne pourra pas être réinitialisé. Les résumés et roasts sont calculés sur ton appareil, quand tu les lances.</p>':'')+
     '<p class="small" id="autherr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700"'+(authErr?'':' hidden')+'>'+esc(authErr)+'</p>'+
     '<button class="btn primary w100" type="submit"'+(authBusy?' disabled':'')+'>'+(authBusy?'Un instant…':(su?'Créer mon compte':'Me connecter'))+'</button></div></form>';
 }
