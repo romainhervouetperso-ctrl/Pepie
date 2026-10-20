@@ -1432,7 +1432,7 @@ function renderOnboard(){
     '<label class="lbl" for="obhandle">Identifiant (pour te retrouver)</label><input id="obhandle" class="inp" maxlength="20" placeholder="ex : camille.v" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username">'+
     '<label class="lbl" for="obpass">Mot de passe</label><input id="obpass" class="inp" type="password" minlength="6" maxlength="72" placeholder="6 caractères minimum" autocomplete="'+(su?'new-password':'current-password')+'">'+
     (su?'<label class="chk"><input type="checkbox" id="obadult"><span>J\'ai 18 ans ou plus. Cela débloque le niveau Hard-core des roasts.</span></label>'+
-      '<p class="small" style="margin:0">Pas d\'adresse e-mail demandée : note bien ton mot de passe, il ne pourra pas être réinitialisé. Les résumés et roasts sont calculés sur ton appareil, quand tu les lances.</p>':'')+
+      '<p class="small" style="margin:0">En créant un compte, tu confirmes avoir 15 ans ou plus et tu acceptes la <a href="confidentialite.html" target="_blank" rel="noopener">politique de confidentialité</a>.</p><p class="small" style="margin:0">Pas d\'adresse e-mail demandée : note bien ton mot de passe, il ne pourra pas être réinitialisé. Les résumés et roasts sont calculés sur ton appareil, quand tu les lances.</p>':'')+
     '<p class="small" id="autherr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700"'+(authErr?'':' hidden')+'>'+esc(authErr)+'</p>'+
     '<button class="btn primary w100" type="submit"'+(authBusy?' disabled':'')+'>'+(authBusy?'Un instant…':(su?'Créer mon compte':'Me connecter'))+'</button></div></form>';
 }
@@ -1633,6 +1633,7 @@ function mmenuHTML(c,m,sub){
     row('msum','sparkle','Résumer (IA)')+
     row('mtrsub','globe','Traduire (IA)')+
     row('mfav','sparkle',((S.favs||[]).some(f=>f.mid===m.id)?'Retirer des favoris':'Ajouter aux favoris'))+
+    (m.f!=='me'?row('mreport','help','Signaler'):'')+
     row('mcopy','copy','Copier le texte')+'</div>';
 }
 
@@ -2151,7 +2152,7 @@ function renderMe(){
     '<div data-key="v:test"><button class="btn ghost plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter ma voix</span></button></div></div></div>';
   h+='<div class="stage left"><h2 class="h3">Notifications</h2><div class="srow"><div><b>Prévenez-moi des nouveaux messages</b><p class="small">Une alerte sur ton téléphone, même quand Pépie est fermée. Sur iPhone, ajoute d\'abord Pépie à l\'écran d\'accueil.</p></div><button class="sw" role="switch" aria-checked="'+(!!S.push)+'" aria-label="Notifications" data-act="pushTog"><i></i></button></div></div>';
   h+='<div class="stage left"><h2 class="h3">IA, roasts et sécurité</h2>'+
-    sw('aiOn','Fonctions IA','Résumés, roasts, tribunal… La conversation concernée est envoyée à Claude, seulement quand tu lances une fonction.')+
+    sw('aiOn','Fonctions IA','Résumés, roasts, tribunal… Tout est calculé sur ton appareil : rien n\'est envoyé à une IA externe.')+
     sw('roastOk','Mes amis peuvent me roaster','Dans un roast de groupe, tu n\'es inclus que si c\'est activé.')+
     sw('adult','J\'ai 18 ans ou plus','Débloque le niveau Hard-core.')+
     '<div class="group"><div class="lbl">Niveau maximum que j\'accepte</div><div class="chips">'+LVO.map(k=>'<button class="chip" data-act="lvmax" data-v="'+k+'" aria-pressed="'+(minLv(me.maxLevel,cap)===k)+'"'+(LVO.indexOf(k)>LVO.indexOf(cap)?' disabled':'')+'>'+LV[k].label+'</button>').join('')+'</div></div>'+
@@ -2160,6 +2161,7 @@ function renderMe(){
   h+='<div class="stage left"><button class="btn ghost w100" data-act="copyinv">'+ico('link',16)+'Inviter des amis (copier le lien)</button><button class="btn ghost w100" data-act="logout">Me déconnecter</button></div>';
   h+='<div class="stage left"><h2 class="h3">Ma boîte à outils</h2><div class="mgrid">'+
     [['badges','🏆','Succès','Badges et accessoires à débloquer'],['recap','📅','Mon mois','Ta rétrospective à partager'],['favs','⭐','Favoris','Tes vocaux gardés'],['books','📖','Livres d\'or','Un lien, des vocaux d\'amis'],['reader','🔊','Lecteur de texte','Lis un long texte à voix haute'],['statusgo','💬','Mon statut vocal','10 secondes, 24 h']].map(x=>'<button class="mcard" data-act="'+x[0]+'"><span class="mi" style="background:var(--yellow,#FFD23F)">'+x[1]+'</span><b>'+x[2]+'</b><span class="s">'+x[3]+'</span></button>').join('')+'</div></div>';
+  h+='<div class="stage left"><h2 class="h3">Mes données</h2><a class="btn ghost w100" href="confidentialite.html" target="_blank" rel="noopener">Politique de confidentialité</a><button class="btn ghost w100" data-act="export">Exporter mes données</button><button class="btn ghost w100" data-act="delacc">Supprimer mon compte</button></div>';
   h+='<h2 class="h3">Mes rappels</h2>'+(reminders.length?'<div class="list" style="gap:8px">'+reminders.map(r=>'<div class="ctact" style="cursor:default"><span class="cinfo"><b style="font-size:14px;white-space:normal">'+esc(r.text)+'</b><span>'+esc(r.conv||'')+(r.at?' · ⏰ '+esc(whenLabel(r.at)):'')+'</span></span><button class="btn ghost" data-act="remdone" data-id="'+r.id+'" style="flex:none;padding:5px 12px">'+ico('check',14)+'Fait</button></div>').join('')+'</div>':'<p class="empty" style="padding:6px 0">Les promesses repérées par le résumé IA peuvent être ajoutées ici.</p>');
   h+='<h2 class="h3">Mes publications</h2>'+(mineP.length?'<div class="list">'+mineP.map(postHTML).join('')+'</div>':'<p class="empty" style="padding:6px 0">Ta première publication apparaîtra ici.</p>');
   $('#v-me').innerHTML=h;
@@ -3625,5 +3627,51 @@ function oqBubble(c,m){
 A.oqans=t=>{
   const id=t.closest('[data-mid]').dataset.mid;
   replyTo=id;renderReplyBar();const i=$('#minput');if(i)i.focus();
+};
+/* =====================================================================
+   Pépie v7 : données personnelles (export, suppression), signalement
+   ===================================================================== */
+A.export=async()=>{
+  toast('Préparation de ton export…');
+  try{
+    const q=(t,col)=>sb.from(t).select('*').eq(col,myId).then(r=>r.data||[]);
+    const [prof,msgs,posts,daily,caps,books,gbs,sched]=await Promise.all([
+      sb.from('profiles').select('*').eq('id',myId).then(r=>r.data||[]),
+      q('messages','sender'),q('posts','author'),q('daily_answers','author'),q('capsules','sender'),q('guestbooks','owner'),q('gb_entries','author'),q('scheduled_msgs','sender')]);
+    const out={exporte_le:new Date().toISOString(),profil:prof[0]||null,messages:msgs,publications:posts,vocaux_du_jour:daily,capsules:caps,livres_d_or:books,mots_laisses_livres_d_or:gbs,messages_programmes:sched,favoris_locaux:S.favs||[],succes:S.badges||[],
+      note:'Les fichiers audio, photos et vidéos sont référencés par leur chemin de stockage ; demande-les si besoin.'};
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    const file=new File([blob],'pepie-mes-donnees.json',{type:'application/json'});
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Mes données Pépie'});return}}catch(e){if(e&&e.name==='AbortError')return}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pepie-mes-donnees.json';document.body.appendChild(a);a.click();a.remove();
+    toast('Export téléchargé ✔');
+  }catch(e){toast("Export impossible : "+(e.message||'erreur'))}
+};
+
+A.delacc=()=>openSheet(sheetHead('Supprimer mon compte')+
+  '<p class="small" style="margin:0">Cette action est <b>définitive</b>. Seront effacés : ton profil, tous tes messages, vocaux, photos, vidéos, publications, capsules, livres d\'or et alertes. Les discussions restent pour tes amis, sans tes messages. Pense à faire un export avant.</p>'+
+  '<label class="lbl" for="delc">Écris SUPPRIMER pour confirmer</label><input id="delc" class="inp" autocapitalize="characters" autocomplete="off" placeholder="SUPPRIMER">'+
+  '<button class="btn primary w100" data-act="delgo" style="background:var(--bad,#c0392b)">Supprimer définitivement mon compte</button>');
+A.delgo=async t=>{
+  const v=(($('#delc')||{}).value||'').trim();
+  if(v!=='SUPPRIMER'){toast('Écris SUPPRIMER pour confirmer.');return}
+  t.disabled=true;t.textContent='Suppression en cours…';
+  try{
+    const r=await sb.functions.invoke('delete-account',{body:{confirm:'SUPPRIMER'}});
+    if(r.error||(r.data&&r.data.error))throw new Error((r.data&&r.data.error)||r.error.message);
+    try{localStorage.removeItem(LKEY+':'+myId)}catch(e){}
+    try{await sb.auth.signOut()}catch(e){}
+    location.href=location.origin+location.pathname;
+  }catch(e){t.disabled=false;t.textContent='Supprimer définitivement mon compte';toast('Suppression impossible : '+(e.message||'erreur'),5000)}
+};
+
+/* ---------- Signalement ---------- */
+const REPORT_WHY=['Harcèlement ou menaces','Contenu choquant ou illégal','Spam ou arnaque','Autre'];
+A.mreport=()=>setSheet(sheetHead('Signaler ce message')+'<p class="small" style="margin:0">Le signalement est envoyé à l\'équipe de Pépie. Tu peux aussi quitter la discussion à tout moment.</p><div class="list" style="gap:8px">'+REPORT_WHY.map(w=>'<button class="lv" data-act="repgo" data-w="'+esc(w)+'"><span><b>'+esc(w)+'</b></span></button>').join('')+'</div>');
+A.repgo=async t=>{
+  const c=conv(MM.cid),m=c&&c.msgs.find(x=>x.id===MM.mid);if(!m)return;
+  closeSheet();
+  const r=await sb.from('reports').insert({msg_id:m.id,conv_id:c.id,target:m.f==='me'?myId:m.f,reason:t.dataset.w});
+  toast(r.error?'Signalement non envoyé.':'Merci, signalement envoyé ✔');
 };
 })();</script></body></html>
