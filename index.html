@@ -21,7 +21,7 @@
 <meta name="twitter:title" content="Pépie : ici, on s’entend">
 <meta name="twitter:description" content="La messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter.">
 <meta name="twitter:image" content="https://romainhervouetperso-ctrl.github.io/Pepie/og.png">
-<meta name="theme-color" content="#FFD23F">
+<meta name="theme-color" content="#FFA98A">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pépie">
@@ -38,9 +38,9 @@
 /* Layout: colonne mobile centrée. Vues: onboarding, discussions, conversation (plein écran), fil, création, nouvelle discussion, profil.
    Style autocollant: contours épais, ombres dures, aplats vifs. */
 :root{
-  --bg:#E9EEF8; --card:#FFFFFF; --soft:#EEF1FA; --ink:#14142B; --muted:#5A5D78;
-  --line:#14142B; --shadow:#14142B;
-  --coral:#FF5A5F; --yellow:#FFD23F; --mint:#34D3A8; --blue:#5B7CFA; --orange:#FFB86B; --on:#14142B;
+  --bg:#FFF3EC; --card:#FFFFFF; --soft:#FCE6DA; --ink:#3B1A12; --muted:#7A5A4E;
+  --line:#3B1A12; --shadow:#3B1A12;
+  --coral:#FF5A5F; --yellow:#FFA98A; --mint:#34D3A8; --blue:#2F5BFF; --orange:#FFB86B; --on:#3B1A12;
   --font-display:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;
   --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
@@ -338,7 +338,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 <div class="app" id="app">
   <header class="top gut" id="top" hidden>
     <div class="logo">
-      <svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><path d="M6 5h24a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H17l-7 6v-6H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="#FFD23F" stroke="#14142B" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 12v7M18 9v13M24 13v5" stroke="#14142B" stroke-width="3" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 104 104" width="34" height="34" aria-hidden="true"><path d="M18 52C18 30 34 16 54 16C74 16 88 30 88 48C88 68 72 82 52 82L30 92L36 76C24 70 18 62 18 52Z" fill="#FFA98A" stroke="#3B1A12" stroke-width="6" stroke-linejoin="round"/><path d="M85 37L104 47L85 59Z" fill="#2F5BFF" stroke="#3B1A12" stroke-width="4" stroke-linejoin="round"/><circle cx="66" cy="42" r="7" fill="#fff" stroke="#3B1A12" stroke-width="3"/><circle cx="67.5" cy="42.5" r="3.2" fill="#3B1A12"/><path d="M38 56Q50 70 64 58" fill="none" stroke="#3B1A12" stroke-width="5" stroke-linecap="round"/></svg>
       <span>Pépie</span>
     </div>
     <button class="iconbtn" id="btn-settings" data-act="settings" aria-label="Réglages de lecture"></button>
@@ -1422,7 +1422,7 @@ function renderOnboard(){
   const su=authMode==='signup';
   $('#v-onboard').innerHTML=
     '<form class="ob" id="obform" autocomplete="on">'+
-    '<div class="logo"><svg viewBox="0 0 36 36" width="40" height="40" aria-hidden="true"><path d="M6 5h24a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H17l-7 6v-6H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="#FFD23F" stroke="#14142B" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 12v7M18 9v13M24 13v5" stroke="#14142B" stroke-width="3" stroke-linecap="round"/></svg><span>Pépie</span></div>'+
+    '<div class="logo"><svg viewBox="0 0 104 104" width="34" height="34" aria-hidden="true"><path d="M18 52C18 30 34 16 54 16C74 16 88 30 88 48C88 68 72 82 52 82L30 92L36 76C24 70 18 62 18 52Z" fill="#FFA98A" stroke="#3B1A12" stroke-width="6" stroke-linejoin="round"/><path d="M85 37L104 47L85 59Z" fill="#2F5BFF" stroke="#3B1A12" stroke-width="4" stroke-linejoin="round"/><circle cx="66" cy="42" r="7" fill="#fff" stroke="#3B1A12" stroke-width="3"/><circle cx="67.5" cy="42.5" r="3.2" fill="#3B1A12"/><path d="M38 56Q50 70 64 58" fill="none" stroke="#3B1A12" stroke-width="5" stroke-linecap="round"/></svg><span>Pépie</span></div>'+
     inviterBanner()+'<h1 class="big">Ici, on s’entend.</h1>'+
     '<p class="hint" style="max-width:none">La messagerie où chaque vocal s\'écrit tout seul, et chaque texte peut se faire écouter.</p>'+
     '<div class="seg" role="group" aria-label="Connexion ou inscription"><button type="button" data-act="authmode" data-m="signup" aria-pressed="'+su+'">Créer un compte</button><button type="button" data-act="authmode" data-m="login" aria-pressed="'+(!su)+'">Me connecter</button></div>'+
@@ -2160,7 +2160,7 @@ function renderMe(){
     '<p class="small" style="margin:0">Les roasts ne visent jamais le physique, l\'origine, la religion, la santé, l\'orientation, ni aucune menace. Si une conversation montre quelqu\'un qui va mal, l\'IA n\'envoie pas de roast.</p></div>';
   h+='<div class="stage left"><button class="btn ghost w100" data-act="copyinv">'+ico('link',16)+'Inviter des amis (copier le lien)</button><button class="btn ghost w100" data-act="logout">Me déconnecter</button></div>';
   h+='<div class="stage left"><h2 class="h3">Ma boîte à outils</h2><div class="mgrid">'+
-    [['badges','🏆','Succès','Badges et accessoires à débloquer'],['recap','📅','Mon mois','Ta rétrospective à partager'],['favs','⭐','Favoris','Tes vocaux gardés'],['books','📖','Livres d\'or','Un lien, des vocaux d\'amis'],['reader','🔊','Lecteur de texte','Lis un long texte à voix haute'],['statusgo','💬','Mon statut vocal','10 secondes, 24 h']].map(x=>'<button class="mcard" data-act="'+x[0]+'"><span class="mi" style="background:var(--yellow,#FFD23F)">'+x[1]+'</span><b>'+x[2]+'</b><span class="s">'+x[3]+'</span></button>').join('')+'</div></div>';
+    [['badges','🏆','Succès','Badges et accessoires à débloquer'],['recap','📅','Mon mois','Ta rétrospective à partager'],['favs','⭐','Favoris','Tes vocaux gardés'],['books','📖','Livres d\'or','Un lien, des vocaux d\'amis'],['reader','🔊','Lecteur de texte','Lis un long texte à voix haute'],['statusgo','💬','Mon statut vocal','10 secondes, 24 h']].map(x=>'<button class="mcard" data-act="'+x[0]+'"><span class="mi" style="background:var(--yellow,#FFA98A)">'+x[1]+'</span><b>'+x[2]+'</b><span class="s">'+x[3]+'</span></button>').join('')+'</div></div>';
   h+='<div class="stage left"><h2 class="h3">Mes données</h2><a class="btn ghost w100" href="confidentialite.html" target="_blank" rel="noopener">Politique de confidentialité</a><button class="btn ghost w100" data-act="export">Exporter mes données</button><button class="btn ghost w100" data-act="delacc">Supprimer mon compte</button></div>';
   h+='<h2 class="h3">Mes rappels</h2>'+(reminders.length?'<div class="list" style="gap:8px">'+reminders.map(r=>'<div class="ctact" style="cursor:default"><span class="cinfo"><b style="font-size:14px;white-space:normal">'+esc(r.text)+'</b><span>'+esc(r.conv||'')+(r.at?' · ⏰ '+esc(whenLabel(r.at)):'')+'</span></span><button class="btn ghost" data-act="remdone" data-id="'+r.id+'" style="flex:none;padding:5px 12px">'+ico('check',14)+'Fait</button></div>').join('')+'</div>':'<p class="empty" style="padding:6px 0">Les promesses repérées par le résumé IA peuvent être ajoutées ici.</p>');
   h+='<h2 class="h3">Mes publications</h2>'+(mineP.length?'<div class="list">'+mineP.map(postHTML).join('')+'</div>':'<p class="empty" style="padding:6px 0">Ta première publication apparaîtra ici.</p>');
@@ -2527,12 +2527,12 @@ function toggleRx(m,e,origin){
   '.da{display:flex;gap:10px;align-items:flex-start}.da .cb{flex:1;min-width:0}.da .tr{margin:2px 0 0}'+
   '.strk{font:800 12px var(--font-body);margin-left:6px;white-space:nowrap}'+
   '.capsheet{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:8px 0}'+
-  '.bigmic{width:84px;height:84px;border-radius:50%;border:3px solid var(--ink);background:var(--accent,#FFD23F);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}'+
+  '.bigmic{width:84px;height:84px;border-radius:50%;border:3px solid var(--ink);background:var(--accent,#FFA98A);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}'+
   '.bigmic.rec{background:#FF5A5F;animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.07)}}'+
   '#car{position:fixed;inset:0;z-index:60;background:#14142B;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:max(24px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));text-align:center}'+
   '#car .ctx{font:800 26px/1.25 var(--font-display);max-width:560px}#car .cst{opacity:.75;font:700 16px var(--font-body)}'+
   '#car .bigmic{width:140px;height:140px}#car .row{display:flex;gap:12px}'+
-  '#car button.btn{font-size:16px}.mrow.flash .bubble{animation:flashb 1.6s}@keyframes flashb{0%,60%{box-shadow:0 0 0 4px #FFD23F}100%{box-shadow:none}}';
+  '#car button.btn{font-size:16px}.mrow.flash .bubble{animation:flashb 1.6s}@keyframes flashb{0%,60%{box-shadow:0 0 0 4px #FFA98A}100%{box-shadow:none}}';
   document.head.appendChild(st);
 })();
 
@@ -2570,7 +2570,7 @@ A.plus=()=>{const c=conv(cur);if(c)openSheet(plusHTML(c))};
 function plusHTML(c){
   const card=(k,ic,t,s,bg)=>'<button class="mcard" data-act="plgo" data-k="'+k+'"><span class="mi" style="background:'+bg+'">'+ico(ic,20)+'</span><b>'+t+'</b><span class="s">'+s+'</span></button>';
   return sheetHead('Ajouter')+'<div class="mgrid">'+
-    card('sticker','smile','Sticker','Ton avatar en émotion','#FFD23F')+
+    card('sticker','smile','Sticker','Ton avatar en émotion','#FFA98A')+
     card('poll','scale','Sondage','Votez avec un emoji','#8FB0FF')+
     card('truth','help','Vérité ou vocal','Un défi à relever en vocal','#FF8FA0')+
     card('imit','mic','Imitation','Le groupe vote la meilleure','#FFB86B')+
@@ -3061,11 +3061,11 @@ async function inviteAutoChat(){
   '.stories{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none;margin:0 -2px}.stories::-webkit-scrollbar{display:none}'+
   '.story{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font:700 11.5px var(--font-body)}'+
   '.story .ring{width:62px;height:62px;border-radius:50%;padding:3px;border:2.5px dashed var(--line);display:flex;align-items:center;justify-content:center;position:relative}'+
-  '.story .ring.on{border:3px solid var(--accent,#FFD23F);box-shadow:0 0 0 2px var(--ink)}'+
+  '.story .ring.on{border:3px solid var(--accent,#FFA98A);box-shadow:0 0 0 2px var(--ink)}'+
   '.story .ring.me{border-style:solid;border-color:var(--ink)}'+
-  '.story .ring .av{width:52px;height:52px;display:block}.story .plus{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--accent,#FFD23F);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font:900 15px/1 var(--font-body)}'+
+  '.story .ring .av{width:52px;height:52px;display:block}.story .plus{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--accent,#FFA98A);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font:900 15px/1 var(--font-body)}'+
   '.story span.n{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
-  '.dtile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid var(--ink);border-radius:20px;background:var(--accent,#FFD23F);color:#14142B;padding:12px 14px;box-shadow:3px 3px 0 var(--shadow);cursor:pointer;margin:2px 0 6px}'+
+  '.dtile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid var(--ink);border-radius:20px;background:var(--accent,#FFA98A);color:#14142B;padding:12px 14px;box-shadow:3px 3px 0 var(--shadow);cursor:pointer;margin:2px 0 6px}'+
   '.dtile .e{font-size:26px}.dtile b{display:block;font:800 15px/1.25 var(--font-display)}.dtile span.s{display:block;font:600 12.5px var(--font-body);opacity:.8;margin-top:2px}'+
   '.sect{font:800 12px var(--font-body);letter-spacing:.07em;text-transform:uppercase;opacity:.6;margin:10px 2px 2px}'+
   '.crowc{display:flex;align-items:stretch;gap:6px}.crowc .citem{flex:1;min-width:0}'+
@@ -3471,8 +3471,8 @@ function recapStats(){
 }
 function drawRecap(r){
   const W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
-  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#FFD23F');g.addColorStop(1,'#FF8FA0');x.fillStyle=g;x.fillRect(0,0,W,H);
-  x.fillStyle='#14142B';x.font='800 64px system-ui,sans-serif';x.fillText('Mon mois sur Pépie',70,130);
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#FFA98A');g.addColorStop(1,'#FFE0D2');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='#3B1A12';x.font='800 64px system-ui,sans-serif';x.fillText('Mon mois sur Pépie',70,130);
   x.font='600 34px system-ui,sans-serif';x.fillText(meName()+' · '+new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'}),70,185);
   const lines=[
     [r.sent+' messages envoyés','💬'],
