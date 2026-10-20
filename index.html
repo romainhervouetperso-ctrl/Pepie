@@ -698,6 +698,7 @@ function loadLocal(){
       if(d.badges)S.badges=d.badges;
       if(d.dn)S.dn=d.dn;
       if(d.drafts)S.drafts=d.drafts;
+      if(d.heard)S.heard=d.heard;
       if(d.aiSeen)me.aiSeen=true;}
   }catch(e){}
 }
@@ -706,7 +707,7 @@ let sentProf='',profT=0;
 function save(){
   if(!myId)return;
   convs.forEach(c=>{readModes[c.id]=c.readMode});
-  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({pins:S.pins||[],push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen,favs:S.favs||[],badges:S.badges||[],dn:S.dn||0,drafts:S.drafts||{}}))}catch(e){}
+  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({pins:S.pins||[],push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen,favs:S.favs||[],badges:S.badges||[],dn:S.dn||0,drafts:S.drafts||{},heard:S.heard||{}}))}catch(e){}
   const p=profOf(),j=JSON.stringify(p);
   if(j!==sentProf){
     clearTimeout(profT);
@@ -1405,7 +1406,7 @@ function renderTabs(){
   const u=unreadTotal();
   $('#tabs').innerHTML=
     '<button class="tab" data-act="go" data-to="chats"><span class="pill">'+ico('comment',22)+'</span>Discussions'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
-    '<button class="tab" data-act="go" data-to="feed"><span class="pill">'+ico('home',22)+'</span>Fil</button>'+
+    '<button class="tab" data-act="go" data-to="feed"><span class="pill">'+ico('sparkle',22)+'</span>Aujourd\'hui</button>'+
     '<button class="tab" data-act="go" data-to="me"><span class="pill">'+ico('user',22)+'</span>Moi</button>';
   document.querySelectorAll('#tabs [data-to]').forEach(b=>b.setAttribute('aria-current',b.dataset.to===view?'page':'false'));
 }
@@ -2034,7 +2035,7 @@ function postHTML(p){
     (voice?'<button class="rd" data-act="tr" aria-expanded="'+!!p.open+'">'+ico('text',16)+'<span>'+(p.open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(p.open?'':' hidden')+'>'+words(p.text)+'</p>':'<p class="tr">'+words(p.text)+'</p>')+
     '<div class="react">'+reactHTML(p)+'</div></article>';
 }
-function renderFeed(){
+function renderFeedPosts(){
   const f=[['all','Tout'],['voice','Vocaux'],['text','Écrits']];
   const ps=posts.slice().sort((a,b)=>b.t-a.t).filter(p=>F==='all'||p.type===F);
   $('#v-feed').innerHTML=
@@ -2200,7 +2201,7 @@ A.settings=()=>openSheet(settingsHTML());
 A.rate=t=>{S.rate=parseFloat(t.dataset.r);save();document.querySelectorAll('[data-act="rate"]').forEach(b=>b.setAttribute('aria-pressed',String(parseFloat(b.dataset.r)===S.rate)))};
 A.play=t=>{
   const holder=t.closest('[data-key]');if(!holder)return;
-  const key=holder.dataset.key;
+  const key=holder.dataset.key;heardKey(key);
   if(np&&np.key===key){stopPlay();return}
   const sp=speechFor(key);
   if(!sp.audio&&(!sp.text||!String(sp.text).trim())){toast("Rien à lire pour l'instant.");return}
@@ -3124,7 +3125,7 @@ function renderChats(){
     '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(avMood('me'),52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
     fr.map(f=>{const a=frAns(f.id);const sl=statusLive(U[f.id]);return '<button class="story" role="listitem" data-act="'+(sl?'stplay':(a?'storyplay':'open'))+'" data-id="'+(sl?f.id:(a?a.id:f.cid))+'" data-cid="'+f.cid+'"><span class="ring'+((a||sl)?' on':'')+'"><span class="av">'+avatar(avMood(f.id),52)+'</span>'+(sl?'<span class="plus" style="background:var(--pink,#FF8FA0)">💬</span>':'')+'</span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
     '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
-  html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans le Fil':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
+  html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans Aujourd\'hui':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
   html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div>';
   if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
   html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
@@ -3964,6 +3965,104 @@ async function gbSendPhoto(file){
     toast('Photo ajoutée à l\'album ✔');openBook(id0);
   }catch(e){toast('Photo non envoyée : '+(e.message||'erreur'))}
 }
+
+/* ================= Aujourd'hui : radio des amis + QG des jeux ================= */
+function heardKey(key){
+  const p=String(key||'').split(':');
+  if(p[0]==='m'&&p[2])markHeard(p[2]);
+}
+function markHeard(id){
+  S.heard=S.heard||{};
+  if(S.heard[id])return;
+  S.heard[id]=Date.now();
+  const k=Object.keys(S.heard);
+  if(k.length>400){k.sort((a,b)=>S.heard[a]-S.heard[b]).slice(0,k.length-300).forEach(x=>{delete S.heard[x]})}
+  save();
+}
+let RADIO=null;
+function radioQueue(){
+  const lim=Date.now()-3*864e5,h=S.heard||{},out=[];
+  convs.forEach(c=>{
+    if(c.muted)return;
+    c.msgs.forEach(m=>{
+      if(m.f!=='me'&&m.k==='voice'&&!m.del&&!hidden(m)&&m.t>lim&&!h[m.id])out.push({c:c,m:m});
+    });
+  });
+  out.sort((a,b)=>a.m.t-b.m.t);
+  return out.slice(0,25);
+}
+function radioNext(){
+  if(!RADIO)return;
+  const x=RADIO.q.shift();
+  if(!x){RADIO=null;toast('C\'est tout pour le moment 🎧',3000);if(view==='feed')renderFeed();return}
+  RADIO.cur=x;markHeard(x.m.id);
+  if(view==='feed')renderFeed();
+  const key='m:'+x.c.id+':'+x.m.id;
+  playSpec(key,speechFor(key),radioNext);
+}
+function radioStop(){RADIO=null;stopPlay();if(view==='feed')renderFeed()}
+A.radio=()=>{
+  if(RADIO){radioStop();return}
+  const q=radioQueue();
+  if(!q.length){toast('Rien de nouveau à écouter. Reviens quand tes amis auront parlé !',3500);return}
+  RADIO={q:q,cur:null};radioNext();
+};
+A.radioskip=()=>{if(!RADIO)return;stopPlay();radioNext()};
+function radioHTML(){
+  if(RADIO&&RADIO.cur){
+    const x=RADIO.cur,left=RADIO.q.length;
+    return '<div class="daily"><span class="dq">📻 Radio des amis · en direct</span>'+
+      '<div class="da"><span class="av">'+avatar(avOf(x.m.f),40)+'</span><div class="cb"><b>'+esc(nameOf(x.m.f))+'</b><div class="small">'+esc(convTitle(x.c))+' · '+esc(dayLabel(x.m.t))+' · '+fmt(x.m.dur||5)+'</div><p class="tr small">'+esc(snip(x.m.text,110))+'</p></div></div>'+
+      '<div class="chips"><button class="chip" data-act="radioskip">Passer ⏭</button><button class="chip" data-act="radio">Arrêter ⏹</button></div>'+
+      '<p class="small" style="margin:0">'+(left?left+' vocal'+(left>1?'ux':'')+' ensuite.':'Dernier vocal de la file.')+'</p></div>';
+  }
+  const n=radioQueue().length;
+  return '<button class="dtile" data-act="radio"><span class="e">📻</span><span><b>Radio des amis</b><span class="s">'+(n?n+' vocal'+(n>1?'ux':'')+' que tu n\'as pas encore écouté'+(n>1?'s':'')+' · touche pour tout enchaîner':'Tu es à jour. Les nouveaux vocaux de tes amis s\'enchaîneront ici.')+'</span></span></button>';
+}
+const GAMES=[
+  ['truth','🎭','Vérité ou vocal','Un défi à relever en vocal','#FF8FA0'],
+  ['imit','🎤','Imitation','Le groupe vote la meilleure','#FFB86B'],
+  ['quiz','🧠','Quiz perso','Connais-tu bien moi ?','#FFB86B'],
+  ['blind','🎧','Blind test vocal','Qui parle ? Devine la voix','#8FB0FF'],
+  ['poll','⚖️','Sondage','Votez avec un emoji','#8FB0FF'],
+  ['duel','🔥','Duel de roasts','Deux amis, le groupe vote','#FF5A5F'],
+  ['chor','🎶','Chorale','Chacun ajoute sa voix','#C9B6FF'],
+  ['oq','💬','Question ouverte','Chacun répond en vocal ou texte','#7CD6A5'],
+  ['capsule','🔒','Capsule temporelle','Un message qui s\'ouvre plus tard','#34D3A8'],
+  ['lboard','🏆','Classement','Les plus bavards de la semaine','#FFD23F'],
+  ['badges','🏅','Succès','Badges et accessoires','#FFD23F'],
+  ['books','🎉','Événements','Livres d\'or, album photo + vocaux','#FF8FA0']
+];
+function gamesHTML(){
+  return '<div class="sect">QG des jeux</div><div class="mgrid">'+GAMES.map(g=>'<button class="mcard" data-act="qg" data-k="'+g[0]+'"><span class="mi" style="background:'+g[4]+';font-size:20px">'+g[1]+'</span><b>'+g[2]+'</b><span class="s">'+g[3]+'</span></button>').join('')+'</div>';
+}
+function qgLaunch(cid,k){
+  openChat(cid);
+  const c=conv(cid);if(!c)return;
+  if(k==='blind'){A.blindgo();return}
+  openSheet(plusHTML(c));
+  A.plgo({dataset:{k:k}});
+}
+A.qg=t=>{
+  const k=t.dataset.k;
+  if(k==='lboard')return A.lboard();
+  if(k==='badges')return A.badges();
+  if(k==='books')return A.books();
+  if(!convs.length){toast('Invite d\'abord un ami pour jouer ensemble.',3500);return}
+  if(convs.length===1){qgLaunch(convs[0].id,k);return}
+  const g=GAMES.find(x=>x[0]===k);
+  const list=convs.slice().sort((a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)});
+  openSheet(sheetHead(g[1]+' '+g[2])+'<div class="lbl">Dans quelle discussion ?</div><div class="list" style="gap:8px">'+
+    list.map(c=>'<button class="ctact" data-act="qgconv" data-c="'+c.id+'" data-k="'+k+'"><span class="av">'+convAv(c,36)+'</span><span class="cinfo"><b style="font-size:15px">'+esc(convTitle(c))+'</b></span></button>').join('')+'</div>');
+};
+A.qgconv=t=>qgLaunch(t.dataset.c,t.dataset.k);
+function renderFeed(){
+  $('#v-feed').innerHTML=
+    '<div class="vhead"><h1 class="h1">Aujourd\'hui</h1></div>'+radioHTML()+dailyCardHTML()+gamesHTML()+
+    '<p class="small" style="margin:6px 0 0">Tes anciennes publications sont dans l\'onglet Moi.</p>';
+  renderTabs();
+  if(np)paintKey(np.key);
+}
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4012,7 +4111,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792526637';
+const BUILD='1792527409';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
