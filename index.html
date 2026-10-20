@@ -1145,7 +1145,7 @@ async function piperSession(voice){
   if(piperSess&&piperSess.model===voice.model)return piperSess.s;
   piperSess=null;
   try{m.TtsSession._instance=null}catch(e){}
-  const s=new m.TtsSession({voiceId:voice.model,progress:p=>piperProgress(p,voice)});
+  const s=new m.TtsSession({voiceId:voice.model,progress:p=>piperProgress(p,voice),logger:l=>{console.log('[piper]',l)}});
   try{await s.waitReady}catch(e){try{m.TtsSession._instance=null}catch(_){}throw e}
   piperSess={model:voice.model,s:s};
   return s;
@@ -1178,7 +1178,7 @@ async function piperSpeak(key,sp,voice,fun,after){
   }catch(e){
     if(np!==st)return;
     np=null;paintKey(key);
-    toast("Voix Piper indisponible (connexion ?). Voix de l'appareil à la place.");
+    console.error('Piper',e);toast('Piper a échoué : '+String((e&&e.message)||e).slice(0,120),5000);
     startPlay(key,{text:sp.text,pitch:fun?fun.tts.pitch:sp.pitch,rateMul:fun?fun.tts.rate:1,gender:fun&&fun.tts.gender||voice.g,after:after});
   }
 }
@@ -1238,9 +1238,9 @@ function buildFx(a,fx){
 
 /* ---------- Toast, feuilles, éclats ---------- */
 let toastT=0;
-function toast(msg){
+function toast(msg,ms){
   const t=$('#toast');t.textContent=msg;t.hidden=false;
-  clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},2400);
+  clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},ms||2400);
 }
 let sheetT=0,aiCtl=null;
 function openSheet(html){
