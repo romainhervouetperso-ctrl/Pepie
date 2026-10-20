@@ -688,6 +688,7 @@ function loadLocal(){
       if(d.rate)S.rate=d.rate;
       if(d.piper)S.piper=true;
       if(d.push)S.push=true;
+      if(d.pins)S.pins=d.pins;
       if(d.cr)S.cr=d.cr;
       if(d.invmsg)S.invmsg=d.invmsg;
       if(d.reminders)reminders=d.reminders;
@@ -701,7 +702,7 @@ let sentProf='',profT=0;
 function save(){
   if(!myId)return;
   convs.forEach(c=>{readModes[c.id]=c.readMode});
-  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen}))}catch(e){}
+  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({pins:S.pins||[],push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen}))}catch(e){}
   const p=profOf(),j=JSON.stringify(p);
   if(j!==sentProf){
     clearTimeout(profT);
@@ -1436,19 +1437,6 @@ function previewOf(c){
   if(m.k==='ai')return who+(m.tag||'IA')+' · '+snip(m.title||'',30);
   return who+snip(m.text,60);
 }
-function renderChats(){
-  const list=convs.slice().sort((a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)});
-  $('#v-chats').innerHTML=
-    '<div class="vhead"><h1 class="h1">Discussions</h1><span style="display:flex;gap:6px"><button class="iconbtn" data-act="search" aria-label="Rechercher">'+ico('help',20).replace(I.help,'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>')+'</button><button class="iconbtn" data-act="morning" aria-label="Résumé du jour">☀️</button><button class="btn primary" data-act="newchat">'+ico('plus',18)+'Nouvelle</button></span></div>'+
-    '<div class="list">'+(list.length?list.map(c=>{
-      const l=lastOf(c);
-      return '<button class="citem" data-act="open" data-id="'+c.id+'">'+convAv(c,48)+
-        '<span class="cinfo"><b>'+esc(convTitle(c))+streakBadge(c)+'</b><span>'+esc(previewOf(c))+'</span></span>'+
-        '<span class="cmeta"><span>'+(l?ago(l.t).replace('il y a ',''):'')+'</span>'+(c.unread?'<span class="nb">'+c.unread+'</span>':'')+'</span></button>';
-    }).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Nouvelle », puis lance la première !</p>')+'</div>';
-  renderTabs();
-}
-
 /* ---------- Nouvelle discussion ---------- */
 let FRIENDS=[],fq='',friendsLoaded=false;
 async function loadFriends(){
@@ -3021,4 +3009,78 @@ async function inviteAutoChat(){
   if(r.error||!r.data)return;
   const c=await loadConv(r.data);if(c)openChat(c.id);
 }
+
+
+/* =====================================================================
+   Accueil vivant : stories d'amis, vocal du jour, épinglées
+   ===================================================================== */
+(function(){
+  const st=document.createElement('style');
+  st.textContent=
+  '.hello{display:flex;align-items:center;gap:12px;margin-bottom:4px}.hello .av{width:46px;height:46px;display:block;cursor:pointer;flex:none}'+
+  '.hello h1{margin:0;font:800 24px/1.1 var(--font-display);letter-spacing:-.01em}.hello p{margin:2px 0 0;font:600 13px var(--font-body);opacity:.7}'+
+  '.hello .sp{flex:1;min-width:0}.hello .acts{display:flex;gap:6px;align-items:center}'+
+  '.stories{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none;margin:0 -2px}.stories::-webkit-scrollbar{display:none}'+
+  '.story{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font:700 11.5px var(--font-body)}'+
+  '.story .ring{width:62px;height:62px;border-radius:50%;padding:3px;border:2.5px dashed var(--line);display:flex;align-items:center;justify-content:center;position:relative}'+
+  '.story .ring.on{border:3px solid var(--accent,#FFD23F);box-shadow:0 0 0 2px var(--ink)}'+
+  '.story .ring.me{border-style:solid;border-color:var(--ink)}'+
+  '.story .ring .av{width:52px;height:52px;display:block}.story .plus{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--accent,#FFD23F);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font:900 15px/1 var(--font-body)}'+
+  '.story span.n{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+  '.dtile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid var(--ink);border-radius:20px;background:var(--accent,#FFD23F);color:#14142B;padding:12px 14px;box-shadow:3px 3px 0 var(--shadow);cursor:pointer;margin:2px 0 6px}'+
+  '.dtile .e{font-size:26px}.dtile b{display:block;font:800 15px/1.25 var(--font-display)}.dtile span.s{display:block;font:600 12.5px var(--font-body);opacity:.8;margin-top:2px}'+
+  '.sect{font:800 12px var(--font-body);letter-spacing:.07em;text-transform:uppercase;opacity:.6;margin:10px 2px 2px}'+
+  '.crowc{display:flex;align-items:stretch;gap:6px}.crowc .citem{flex:1;min-width:0}'+
+  '.pinb{flex:none;width:34px;border:0;background:transparent;font-size:15px;opacity:.35;cursor:pointer}.pinb.on{opacity:1}'+
+  '.pill{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:999px;padding:6px 12px;font:700 13px var(--font-body);background:var(--card);cursor:pointer;color:var(--ink)}'+
+  '.pills{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}';
+  document.head.appendChild(st);
+})();
+const isPinned=id=>(S.pins||[]).indexOf(id)>=0;
+A.pin=t=>{
+  S.pins=S.pins||[];const id=t.dataset.id,i=S.pins.indexOf(id);
+  if(i>=0)S.pins.splice(i,1);else S.pins.push(id);
+  save();renderChats();
+};
+function friendStories(){
+  const seen={},out=[];
+  convs.slice().sort((a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)}).forEach(c=>c.members.forEach(id=>{if(!seen[id]){seen[id]=1;out.push({id:id,cid:c.id})}}));
+  return out.slice(0,14);
+}
+function renderChats(){
+  const sort=(a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)};
+  const all=convs.slice().sort(sort),pinned=all.filter(c=>isPinned(c.id)),rest=all.filter(c=>!isPinned(c.id));
+  const today=dayStr(Date.now()),done=answeredToday();
+  const mineA=DA.find(a=>a.u==='me'&&a.day===today);
+  const fr=friendStories();
+  const frAns=id=>done?DA.find(a=>a.u===id&&a.day===today):null;
+  const nAns=DA.filter(a=>a.day===today&&a.u!=='me').length;
+  const h=new Date().getHours(),hi=h<6?'Coucou':(h<18?'Salut':'Bonsoir');
+  const unread=unreadTotal();
+  const row=c=>{
+    const l=lastOf(c);
+    return '<div class="crowc"><button class="citem" data-act="open" data-id="'+c.id+'">'+convAv(c,48)+
+      '<span class="cinfo"><b>'+esc(convTitle(c))+streakBadge(c)+'</b><span>'+esc(previewOf(c))+'</span></span>'+
+      '<span class="cmeta"><span>'+(l?ago(l.t).replace('il y a ',''):'')+'</span>'+(c.unread?'<span class="nb">'+c.unread+'</span>':'')+'</span></button>'+
+      '<button class="pinb'+(isPinned(c.id)?' on':'')+'" data-act="pin" data-id="'+c.id+'" aria-label="'+(isPinned(c.id)?'Désépingler':'Épingler')+'">📌</button></div>';
+  };
+  let html='<div class="hello"><span class="av" data-act="go" data-to="me" role="button" aria-label="Mon profil">'+avatar(me.a,46)+'</span>'+
+    '<div class="sp"><h1>'+hi+' '+esc(meName())+'</h1><p>'+(unread?unread+' message'+(unread>1?'s':'')+' à lire':'Tout est à jour')+'</p></div>'+
+    '<div class="acts"><button class="iconbtn" data-act="search" aria-label="Rechercher">'+ico('help',20).replace(I.help,'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>')+'</button><button class="iconbtn" data-act="morning" aria-label="Résumé du jour">☀️</button></div></div>';
+  html+='<div class="stories" role="list" aria-label="Tes amis">'+
+    '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(me.a,52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
+    fr.map(f=>{const a=frAns(f.id);return '<button class="story" role="listitem" data-act="'+(a?'storyplay':'open')+'" data-id="'+(a?a.id:f.cid)+'"><span class="ring'+(a?' on':'')+'"><span class="av">'+avatar(avOf(f.id),52)+'</span></span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
+    '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
+  html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans le Fil':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
+  html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button></div>';
+  if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
+  html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
+  $('#v-chats').innerHTML=html;
+  renderTabs();
+}
+A.storyplay=t=>{
+  const a=DA.find(x=>x.id===t.dataset.id);if(!a)return;
+  const u=userOf(a.u);toast((a.u==='me'?'Ta réponse':u.name)+' : '+snip(a.text,70),4000);
+  playSpec('da:'+a.id,speechFor('da:'+a.id));
+};
 })();</script></body></html>
