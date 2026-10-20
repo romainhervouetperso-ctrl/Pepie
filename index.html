@@ -694,15 +694,18 @@ function loadLocal(){
       if(d.reminders)reminders=d.reminders;
       if(d.follows)follows=d.follows;
       if(d.readModes)readModes=d.readModes;
+      if(d.favs)S.favs=d.favs;
+      if(d.badges)S.badges=d.badges;
+      if(d.dn)S.dn=d.dn;
       if(d.aiSeen)me.aiSeen=true;}
   }catch(e){}
 }
-const profOf=()=>({name:(me.name||'').trim().slice(0,24)||'Moi',avatar:me.a,voice:me.voice,adult:me.adult,ai_on:me.aiOn,roast_ok:me.roastOk,max_level:me.maxLevel,def_level:me.defLevel,blocked:me.blocked});
+const profOf=()=>({name:(me.name||'').trim().slice(0,24)||'Moi',avatar:me.a,voice:me.voice,adult:me.adult,ai_on:me.aiOn,roast_ok:me.roastOk,max_level:me.maxLevel,def_level:me.defLevel,blocked:me.blocked,status_text:me.status?me.status.text||'':null,status_audio:me.status?me.status.audio||null:null,status_at:me.status?me.status.at:null,mood:me.mood||null,mood_day:me.moodDay||null});
 let sentProf='',profT=0;
 function save(){
   if(!myId)return;
   convs.forEach(c=>{readModes[c.id]=c.readMode});
-  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({pins:S.pins||[],push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen}))}catch(e){}
+  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({pins:S.pins||[],push:!!S.push,cr:S.cr||{},invmsg:S.invmsg||'',piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen,favs:S.favs||[],badges:S.badges||[],dn:S.dn||0}))}catch(e){}
   const p=profOf(),j=JSON.stringify(p);
   if(j!==sentProf){
     clearTimeout(profT);
@@ -736,7 +739,7 @@ function scanBanned(c,m,silent){
   c.scores[m.f]=(c.scores[m.f]||0)+1;
   if(!silent)c.msgs.push({id:uuid(),f:'sys',k:'sys',text:'Mot interdit : '+nameOf(m.f)+' a dit « '+c.banned+' » (+1)',t:Date.now(),rx:{},my:[]});
 }
-const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor'];
+const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor','quiz','qs'];
 function addMsg(c,m,pre){
   const id=m.id||uuid();
   m=Object.assign({id:id,t:Date.now(),rx:{},my:[]},m);
@@ -768,7 +771,7 @@ function rpcReact(m,e){
 /* ---------- Conversion lignes → objets de l'app ---------- */
 function profToU(p){
   const av=p.avatar&&p.avatar.bg?p.avatar:UNK.a;
-  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(String(p.voice||'').split('~')[0]),gender:genderOf(String(p.voice||'').split('~')[0]),voice:String(p.voice||'').split('~')[0],roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
+  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(String(p.voice||'').split('~')[0]),gender:genderOf(String(p.voice||'').split('~')[0]),voice:String(p.voice||'').split('~')[0],roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult,st:p.status_at?{text:p.status_text,audio:p.status_audio,at:p.status_at}:null,mood:p.mood||null,moodDay:p.mood_day||null};
 }
 async function ensureProfiles(ids,force){
   const need=Array.from(new Set(ids)).filter(i=>i&&i!==myId&&(force||!U[i]));
@@ -796,11 +799,11 @@ function postFromRow(r,old){
 }
 
 /* ---------- Chargement ---------- */
-function buildConv(cv,memberRows,lastRead){
-  return {id:cv.id,name:cv.name||'',group:cv.is_group,members:memberRows.filter(y=>y.user_id!==myId).map(y=>y.user_id),unread:0,banned:cv.banned||'',scores:{},readMode:readModes[cv.id]||'auto',msgs:[],lastRead:lastRead};
+function buildConv(cv,memberRows,lastRead,muted){
+  return {id:cv.id,name:cv.name||'',walkie:/^📻/.test(cv.name||''),muted:!!muted,group:cv.is_group,members:memberRows.filter(y=>y.user_id!==myId).map(y=>y.user_id),unread:0,banned:cv.banned||'',scores:{},readMode:readModes[cv.id]||'auto',msgs:[],lastRead:lastRead};
 }
 async function loadAll(){
-  const r=await sb.from('conv_members').select('conv_id,last_read,conversations(id,name,is_group,banned)').eq('user_id',myId);
+  const r=await sb.from('conv_members').select('conv_id,last_read,muted,conversations(id,name,is_group,banned)').eq('user_id',myId);
   if(r.error)throw r.error;
   const mem=r.data||[],ids=mem.map(x=>x.conv_id);
   convs=[];
@@ -811,7 +814,7 @@ async function loadAll(){
   ]);
   const allm=res[0].data||[],ms=res[1].data||[];
   await ensureProfiles(allm.map(x=>x.user_id).concat(ms.map(x=>x.sender)),true);
-  mem.forEach(x=>{if(x.conversations)convs.push(buildConv(x.conversations,allm.filter(y=>y.conv_id===x.conv_id),Date.parse(x.last_read)))});
+  mem.forEach(x=>{if(x.conversations)convs.push(buildConv(x.conversations,allm.filter(y=>y.conv_id===x.conv_id),Date.parse(x.last_read),x.muted))});
   ms.reverse().forEach(row=>{const c=conv(row.conv_id);if(c)c.msgs.push(msgFromRow(row))});
   convs.forEach(c=>{
     c.msgs.forEach(m=>scanBanned(c,m,true));
@@ -823,7 +826,7 @@ async function loadConv(cid){
   if(conv(cid)||loadingConv[cid])return conv(cid);
   loadingConv[cid]=true;
   try{
-    const a=await sb.from('conv_members').select('conv_id,last_read,conversations(id,name,is_group,banned)').eq('user_id',myId).eq('conv_id',cid).maybeSingle();
+    const a=await sb.from('conv_members').select('conv_id,last_read,muted,conversations(id,name,is_group,banned)').eq('user_id',myId).eq('conv_id',cid).maybeSingle();
     if(!a.data||!a.data.conversations)return null;
     const res=await Promise.all([
       sb.from('conv_members').select('conv_id,user_id').eq('conv_id',cid),
@@ -832,7 +835,7 @@ async function loadConv(cid){
     const mm=res[0].data||[],ms=res[1].data||[];
     await ensureProfiles(mm.map(x=>x.user_id).concat(ms.map(x=>x.sender)));
     if(conv(cid))return conv(cid);
-    const c=buildConv(a.data.conversations,mm,Date.parse(a.data.last_read));
+    const c=buildConv(a.data.conversations,mm,Date.parse(a.data.last_read),a.data.muted);
     ms.forEach(row=>c.msgs.push(msgFromRow(row)));
     c.msgs.forEach(m=>scanBanned(c,m,true));
     c.unread=c.msgs.filter(m=>m.f!=='me'&&m.k!=='sys'&&m.t>c.lastRead).length;
@@ -869,7 +872,7 @@ async function onMsgInsert(r){
     if(c.readMode==='voice'&&!np&&(m.k==='text'||m.k==='voice'))playSpec('m:'+c.id+':'+m.id,speechFor('m:'+c.id+':'+m.id));
   }else{
     c.unread=(c.unread||0)+1;refreshLists();
-    if(m.k!=='sys')toast(nameOf(m.f)+' : '+(m.k==='voice'?'Vocal':snip(m.text,40)));
+    if(m.k!=='sys'&&!c.muted)toast(nameOf(m.f)+' : '+(m.k==='voice'?'Vocal':snip(m.text,40)));
   }
 }
 function onMsgUpdate(r){
@@ -926,6 +929,12 @@ async function poll(){
         const r3=await sb.from('messages').select('*').eq('conv_id',cur).order('created_at',{ascending:false}).limit(40);
         (r3.data||[]).forEach(row=>onMsgUpdate(row));
       }
+    }
+    if(pollN%10===5&&(view==='chats')){
+      const ids2=[];convs.forEach(c=>c.members.forEach(i=>{if(ids2.indexOf(i)<0)ids2.push(i)}));
+      const o=JSON.stringify(ids2.map(i=>[(U[i]||{}).st,(U[i]||{}).mood]));
+      await ensureProfiles(ids2,true);
+      if(o!==JSON.stringify(ids2.map(i=>[(U[i]||{}).st,(U[i]||{}).mood])))keepScroll(renderChats);
     }
     if(pollN%4===0){
       const r2=await sb.from('conv_members').select('conv_id').eq('user_id',myId);
@@ -1462,7 +1471,7 @@ function renderNew(){
     '<p class="small" style="margin:0">Choisis un ami pour une discussion à deux, plusieurs pour un groupe.</p>'+
     '<input id="fsearch" class="inp" placeholder="Chercher un nom ou un identifiant" value="'+esc(fq)+'" aria-label="Chercher un ami" autocapitalize="none">'+
     '<div class="list" style="gap:8px" id="flist">'+friendsListHTML()+'</div>'+
-    (sel>1?'<label class="lbl" for="gname">Nom du groupe</label><input id="gname" class="inp" maxlength="30" placeholder="Ex : Les copains du dimanche" value="'+esc(gname)+'">':'')+
+    (sel>1?'<label class="lbl" for="gname">Nom du groupe</label><input id="gname" class="inp" maxlength="30" placeholder="Ex : Les copains du dimanche" value="'+esc(gname)+'"><div class="srow"><div><b>📻 Salon vocal</b><p class="small">Un talkie-walkie : on n\'y parle qu\'en vocal.</p></div><button class="sw" role="switch" aria-checked="'+WK+'" aria-label="Salon vocal" data-act="wktog"><i></i></button></div>':'')+
     '<button class="btn primary w100" data-act="cstart"'+(sel?'':' disabled')+'>'+(sel>1?'Créer le groupe':(sel?'Ouvrir la discussion':'Choisis au moins un ami'))+'</button>'+
     '<div class="srow"><p class="small">Ton ami n\'est pas encore sur Pépie ?</p><button class="btn ghost" data-act="invite" style="flex:none;padding:6px 14px">'+ico('link',16)+'Inviter</button></div>';
 }
@@ -1518,6 +1527,8 @@ function msgHTML(c,ms,i,dayStart){
     inner+='<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
       '<button class="rd" data-act="mtrx" aria-expanded="'+!!open+'">'+ico('text',16)+'<span>'+(open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(open?'':' hidden')+'>'+words(m.text)+'</p>';
   }else if(m.stk){inner+=stickerBubble(m)}
+  else if(m.quiz){inner+=quizBubble(c,m)}
+  else if(m.chal==='quizres'){inner+='<p class="tr">'+esc(m.text)+'</p>'}
   else if(m.poll){inner+=pollBubble(c,m)}
   else if(m.chal){inner+=chalBubble(c,m)}
   else{
@@ -1557,6 +1568,8 @@ function renderComposer(){
     return;
   }
   const has=chatDraft.trim().length>0;
+  const wc=conv(cur);
+  if(wc&&wc.walkie){f.innerHTML='<button type="button" class="cbtn" data-act="plus" aria-label="Plus">'+ico('plus',22)+'</button>'+walkieComposer();return}
   f.innerHTML='<button type="button" class="cbtn" data-act="plus" aria-label="Stickers, sondages, jeux">'+ico('plus',22)+'</button><button type="button" class="cbtn" data-act="togq" aria-label="Emojis">'+ico('smile',22)+'</button>'+
     '<input id="minput" maxlength="500" placeholder="Message" aria-label="Ton message" enterkeyhint="send" value="'+esc(chatDraft)+'">'+
     '<button type="button" class="cbtn pri" id="micbtn" data-act="micstart" aria-label="Enregistrer un vocal"'+(has?' hidden':'')+'>'+ico('mic',22)+'</button>'+
@@ -1617,6 +1630,7 @@ function mmenuHTML(c,m,sub){
     row('mreply','reply','Répondre')+
     row('msum','sparkle','Résumer (IA)')+
     row('mtrsub','globe','Traduire (IA)')+
+    row('mfav','sparkle',((S.favs||[]).some(f=>f.mid===m.id)?'Retirer des favoris':'Ajouter aux favoris'))+
     row('mcopy','copy','Copier le texte')+'</div>';
 }
 
@@ -1632,6 +1646,8 @@ function infoHTML(c,confirm){
       '<div class="crow" style="align-items:center"><span class="av">'+avatar(avOf(id),36)+'</span><div class="cb"><b>'+esc(nameOf(id)+(id==='me'?' (toi)':''))+'</b><div class="small">'+capLabel(id)+'</div></div></div>').join('')+'</div>'+
     (c.group?'<div class="lbl">Mot interdit</div><div class="cform"><input id="banin" maxlength="20" placeholder="Ex : pile" value="'+esc(c.banned||'')+'" aria-label="Mot interdit"><button class="btn primary" data-act="setban" style="padding:10px 16px">Définir</button></div>'+
       (c.banned?(sc.length?'<div class="list" style="gap:4px">'+sc.map(k=>'<div class="srow"><span>'+esc(nameOf(k))+'</span><b>'+c.scores[k]+' point'+(c.scores[k]>1?'s':'')+'</b></div>').join('')+'</div>':'<p class="small" style="margin:0">Personne n\'a encore dit « '+esc(c.banned)+' ».</p>'):'<p class="small" style="margin:0">Celui qui dit le mot gagne un point de honte. Vide le champ pour arrêter.</p>'):'')+
+    '<div class="srow"><div><b>Silence</b><p class="small">Plus d\'alerte pour cette discussion.</p></div><button class="sw" role="switch" aria-checked="'+(!!c.muted)+'" aria-label="Couper les notifications" data-act="cmute"><i></i></button></div>'+
+    '<button class="btn ghost w100" data-act="blindgo">'+ico('speaker',16)+'Blind test vocal</button>'+
     (c.group?'<button class="btn ghost w100" data-act="invite">'+ico('link',16)+'Copier le lien d\'invitation</button>':'')+
     '<button class="btn ghost w100" data-act="leave">'+(confirm?'Confirmer : supprimer la discussion':'Supprimer la discussion')+'</button>';
 }
@@ -2104,6 +2120,7 @@ const AVDEF={animal:'human',pat:'none',hair:'none',hairc:'#2B1B14',brows:'none',
 let AVT='hair';
 function opt(k,v,label,inner){
   const cur=me.a[k]||(k==='fur'?ANDEF[me.a.animal]:AVDEF[k]);
+  if(k==='acc'&&isLocked(v))return '<button class="opt" data-act="avlock" data-v="'+v+'" aria-label="'+label+' (verrouillé)" style="opacity:.55">'+inner+'<span class="lk">🔒</span></button>';
   return '<button class="opt" data-act="av" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'" aria-label="'+label+'">'+inner+'</button>';
 }
 function avEditorHTML(){
@@ -2139,6 +2156,8 @@ function renderMe(){
     '<div class="group"><div class="lbl">Sujets interdits</div><div class="chips"><button class="chip" aria-pressed="true" disabled>Physique (toujours)</button>'+TOPICS.map(t=>'<button class="chip" data-act="topic" data-t="'+t+'" aria-pressed="'+(me.blocked.indexOf(t)>=0)+'">'+t+'</button>').join('')+'</div></div>'+
     '<p class="small" style="margin:0">Les roasts ne visent jamais le physique, l\'origine, la religion, la santé, l\'orientation, ni aucune menace. Si une conversation montre quelqu\'un qui va mal, l\'IA n\'envoie pas de roast.</p></div>';
   h+='<div class="stage left"><button class="btn ghost w100" data-act="copyinv">'+ico('link',16)+'Inviter des amis (copier le lien)</button><button class="btn ghost w100" data-act="logout">Me déconnecter</button></div>';
+  h+='<div class="stage left"><h2 class="h3">Ma boîte à outils</h2><div class="mgrid">'+
+    [['badges','🏆','Succès','Badges et accessoires à débloquer'],['recap','📅','Mon mois','Ta rétrospective à partager'],['favs','⭐','Favoris','Tes vocaux gardés'],['books','📖','Livres d\'or','Un lien, des vocaux d\'amis'],['reader','🔊','Lecteur de texte','Lis un long texte à voix haute'],['statusgo','💬','Mon statut vocal','10 secondes, 24 h']].map(x=>'<button class="mcard" data-act="'+x[0]+'"><span class="mi" style="background:var(--yellow,#FFD23F)">'+x[1]+'</span><b>'+x[2]+'</b><span class="s">'+x[3]+'</span></button>').join('')+'</div></div>';
   h+='<h2 class="h3">Mes rappels</h2>'+(reminders.length?'<div class="list" style="gap:8px">'+reminders.map(r=>'<div class="ctact" style="cursor:default"><span class="cinfo"><b style="font-size:14px;white-space:normal">'+esc(r.text)+'</b><span>'+esc(r.conv||'')+(r.at?' · ⏰ '+esc(whenLabel(r.at)):'')+'</span></span><button class="btn ghost" data-act="remdone" data-id="'+r.id+'" style="flex:none;padding:5px 12px">'+ico('check',14)+'Fait</button></div>').join('')+'</div>':'<p class="empty" style="padding:6px 0">Les promesses repérées par le résumé IA peuvent être ajoutées ici.</p>');
   h+='<h2 class="h3">Mes publications</h2>'+(mineP.length?'<div class="list">'+mineP.map(postHTML).join('')+'</div>':'<p class="empty" style="padding:6px 0">Ta première publication apparaîtra ici.</p>');
   $('#v-me').innerHTML=h;
@@ -2170,6 +2189,10 @@ function speechFor(key){
   if(k==='n'){const c=conv(a),m=c.msgs.find(x=>x.id===b),kind=p[3],d=m[kind];return {text:d.text,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender,voice:userOf(m.f).voice,lang:kind==='tr'?(LANGS.find(l=>l[0]===d.lang)||[0,'fr-FR'])[1]:'fr-FR'}}
   if(k==='da'){const x=DA.find(y=>y.id===a)||{},u=userOf(x.u);return {text:x.text,pitch:u.pitch,gender:u.gender,voice:u.voice,audio:x.localAudio||x.audio,dur:x.dur}}
   if(k==='cp'){const cc=conv(a),x=cc&&(cc.caps||[]).find(y=>y.cid===b)||{},u=userOf(x.f||'me');return {text:x.text,pitch:u.pitch,gender:u.gender,voice:u.voice,audio:x.capkind==='voice'?x.audio:null,dur:x.dur}}
+  if(k==='st'){const u=a==='me'?{st:me.status,pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice}:userOf(a),x=a==='me'?me.status:(U[a]||{}).st||{};return {text:x.text||'',pitch:u.pitch,gender:u.gender,voice:u.voice,audio:a==='me'?(me.statusLocal||x.audio):x.audio}}
+  if(k==='rd'){return {text:RD,pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice}}
+  if(k==='fv'){const f=(S.favs||[]).find(y=>y.mid===a)||{};return {text:f.text,pitch:f.pitch,gender:f.gender,voice:f.voice,audio:f.audio,dur:f.dur}}
+  if(k==='gb'){const e=GB&&GB.entries.find(y=>y.id===a)||{},u=userOf(e.u||'me');return {text:e.text,pitch:u.pitch,gender:u.gender,voice:u.voice,audio:e.audio,dur:e.dur}}
   if(k==='ms'){return {text:MSX,pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice}}
   if(k==='r'){return {text:AIR.spec.speak(AIR.data),pitch:AIR.spec.pitch||1,rateMul:AIR.spec.rateMul||1}}
   if(k==='d'&&a==='v')return {text:draft?draft.text:'',pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice,audio:draft&&draft.url,dur:draft&&draft.dur};
@@ -2186,11 +2209,11 @@ A.ctoggle=t=>{const id=t.dataset.id;if(NS.has(id))NS.delete(id);else NS.add(id);
 A.cstart=async t=>{
   const ids=Array.from(NS);if(!ids.length)return;
   t.disabled=true;
-  const r=await sb.rpc('start_chat',{member_ids:ids,gname:gname.trim()});
+  const r=await sb.rpc('start_chat',{member_ids:ids,gname:((WK&&NS.size>1)?'📻 ':'')+gname.trim()});
   if(r.error||!r.data){t.disabled=false;toast("Impossible de créer la discussion : "+(r.error?r.error.message:'erreur'));return}
   const c=await loadConv(r.data);
   if(!c){t.disabled=false;toast('Discussion introuvable');return}
-  openChat(c.id);
+  WK=false;openChat(c.id);
 };
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const inviteMsg=()=>(S.invmsg?S.invmsg.trim()+' ':'')+"Rejoins-moi sur Pépie, la messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter ! Mon identifiant : "+(me.handle?'@'+me.handle:'')+" "+inviteLink();
@@ -2444,6 +2467,7 @@ async function startApp(uid2){
   if(r.error||!r.data){await sb.auth.signOut();throw new Error("Profil introuvable. Reconnecte-toi.")}
   const p=r.data;
   me.handle=p.handle;me.name=p.name;me.a=p.avatar&&p.avatar.bg?p.avatar:me.a;me.voice=String(p.voice||'normale').split('~')[0];me.adult=p.adult;
+  me.status=p.status_at?{text:p.status_text,audio:p.status_audio,at:p.status_at}:null;me.mood=p.mood||null;me.moodDay=p.mood_day||null;
   me.aiOn=p.ai_on;me.roastOk=p.roast_ok;me.maxLevel=p.max_level;me.defLevel=p.def_level;me.blocked=p.blocked||[];me.created=true;
   sentProf=JSON.stringify(profOf());
   loadLocal();
@@ -2549,6 +2573,9 @@ function plusHTML(c){
     card('chor','users','Chorale','Chacun ajoute sa voix','#C9B6FF')+
     card('capsule','lock','Capsule temporelle','Un message qui s\'ouvre plus tard','#34D3A8')+
     (parts(c).length>2||c.members.length>=1?card('duel','flame','Duel de roasts','Deux amis, le groupe vote','#FF5A5F'):'')+
+    card('dispo','users','Qui est dispo ?','Sondage dispo en un tap','#7CD6A5')+
+    card('quiz','help','Quiz perso','Connais-tu bien moi ?','#FFB86B')+
+    card('sched','lock','Message programmé','Envoi à l\'heure choisie','#8FB0FF')+
     card('car','speaker','Mode voiture','Lecture auto, réponse au micro','#14142B')+
     '</div>';
 }
@@ -2559,6 +2586,9 @@ A.plgo=t=>{
   else if(k==='truth'||k==='imit'||k==='chor')sendChallenge(c,k);
   else if(k==='capsule'){CP={kind:'text',days:7,text:''};setSheet(capsuleFormHTML(c))}
   else if(k==='duel'){DU={a:null,b:null};setSheet(duelHTML(c))}
+  else if(k==='dispo')setSheet(dispoHTML());
+  else if(k==='quiz'){QF=[0,1,2].map(()=>({t:'',o:['','',''],a:0}));setSheet(quizFormHTML())}
+  else if(k==='sched'){SC={at:null,text:'',list:[]};setSheet(schedHTML());schedList(c)}
   else if(k==='car'){closeSheet();carOpen(c)}
 };
 
@@ -3048,6 +3078,7 @@ function friendStories(){
   return out.slice(0,14);
 }
 function renderChats(){
+  badgeSoon();
   const sort=(a,b)=>{const x=lastOf(a),y=lastOf(b);return (y?y.t:0)-(x?x.t:0)};
   const all=convs.slice().sort(sort),pinned=all.filter(c=>isPinned(c.id)),rest=all.filter(c=>!isPinned(c.id));
   const today=dayStr(Date.now()),done=answeredToday();
@@ -3064,15 +3095,15 @@ function renderChats(){
       '<span class="cmeta"><span>'+(l?ago(l.t).replace('il y a ',''):'')+'</span>'+(c.unread?'<span class="nb">'+c.unread+'</span>':'')+'</span></button>'+
       '<button class="pinb'+(isPinned(c.id)?' on':'')+'" data-act="pin" data-id="'+c.id+'" aria-label="'+(isPinned(c.id)?'Désépingler':'Épingler')+'">📌</button></div>';
   };
-  let html='<div class="hello"><span class="av" data-act="go" data-to="me" role="button" aria-label="Mon profil">'+avatar(me.a,46)+'</span>'+
+  let html='<div class="hello"><span class="av" data-act="go" data-to="me" role="button" aria-label="Mon profil">'+avatar(avMood('me'),46)+'</span>'+
     '<div class="sp"><h1>'+hi+' '+esc(meName())+'</h1><p>'+(unread?unread+' message'+(unread>1?'s':'')+' à lire':'Tout est à jour')+'</p></div>'+
     '<div class="acts"><button class="iconbtn" data-act="search" aria-label="Rechercher">'+ico('help',20).replace(I.help,'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>')+'</button><button class="iconbtn" data-act="morning" aria-label="Résumé du jour">☀️</button></div></div>';
   html+='<div class="stories" role="list" aria-label="Tes amis">'+
-    '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(me.a,52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
-    fr.map(f=>{const a=frAns(f.id);return '<button class="story" role="listitem" data-act="'+(a?'storyplay':'open')+'" data-id="'+(a?a.id:f.cid)+'"><span class="ring'+(a?' on':'')+'"><span class="av">'+avatar(avOf(f.id),52)+'</span></span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
+    '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(avMood('me'),52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
+    fr.map(f=>{const a=frAns(f.id);const sl=statusLive(U[f.id]);return '<button class="story" role="listitem" data-act="'+(sl?'stplay':(a?'storyplay':'open'))+'" data-id="'+(sl?f.id:(a?a.id:f.cid))+'" data-cid="'+f.cid+'"><span class="ring'+((a||sl)?' on':'')+'"><span class="av">'+avatar(avMood(f.id),52)+'</span>'+(sl?'<span class="plus" style="background:var(--pink,#FF8FA0)">💬</span>':'')+'</span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
     '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
   html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans le Fil':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
-  html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button></div>';
+  html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div>';
   if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
   html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
   $('#v-chats').innerHTML=html;
@@ -3083,4 +3114,396 @@ A.storyplay=t=>{
   const u=userOf(a.u);toast((a.u==='me'?'Ta réponse':u.name)+' : '+snip(a.text,70),4000);
   playSpec('da:'+a.id,speechFor('da:'+a.id));
 };
+/* =====================================================================
+   Pépie v5 : statut vocal, humeur, salons vocaux, dispo, quiz perso,
+   blind test, succès, favoris, livre d'or, messages programmés,
+   silence, rétrospective, lecteur de texte
+   ===================================================================== */
+(function(){
+  const st=document.createElement('style');
+  st.textContent=
+  '.opt{position:relative}.lk{position:absolute;right:2px;bottom:0;font-size:14px}'+
+  '.walkie{flex:1;width:auto!important;height:54px;border-radius:999px!important;padding:0 24px;gap:10px;display:flex;align-items:center;justify-content:center;font:800 16px var(--font-body)}'+
+  '.qzq{border:2px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}'+
+  '.qzq input{width:100%}.qzc{display:flex;gap:6px;align-items:center;font:700 12px var(--font-body)}'+
+  '.badge{display:flex;gap:10px;align-items:center;border:2px solid var(--line);border-radius:16px;padding:10px;background:var(--card)}'+
+  '.badge.off{opacity:.45;filter:grayscale(1)}.badge .e{font-size:28px}.badge b{display:block;font:800 14px var(--font-body)}'+
+  '.recimg{width:100%;border-radius:16px;border:2px solid var(--ink)}'+
+  'textarea.inp{min-height:140px;resize:vertical;font:inherit}';
+  document.head.appendChild(st);
+})();
+
+/* ---------- Humeur du jour ---------- */
+const todayStr=()=>dayStr(Date.now());
+function moodId(id){
+  if(id==='me')return me.moodDay===todayStr()?me.mood:null;
+  const u=U[id];return u&&u.moodDay===todayStr()?u.mood:null;
+}
+function avMood(id){
+  const a=avOf(id),m=moodId(id),s=m&&stkOf(m);
+  return s?Object.assign({},a,s[2]):a;
+}
+A.moodpick=()=>openSheet(sheetHead('Mon humeur du jour')+'<p class="small" style="margin:0">Ton avatar prend cette expression toute la journée, chez tes amis aussi.</p><div class="opts">'+
+  STK.map(s=>'<button class="opt" data-act="moodset" data-id="'+s[0]+'" aria-label="'+s[1]+'" aria-pressed="'+(moodId('me')===s[0])+'">'+avatar(Object.assign({},me.a,s[2]),64)+'</button>').join('')+'</div>'+
+  '<button class="btn ghost w100" data-act="moodset" data-id="">Aucune humeur</button>');
+A.moodset=t=>{
+  const id=t.dataset.id;
+  me.mood=id||null;me.moodDay=id?todayStr():null;save();closeSheet();
+  toast(id?'Humeur du jour : '+stkOf(id)[1]:'Humeur retirée');
+  if(view==='chats')renderChats();
+};
+
+/* ---------- Statut vocal ---------- */
+const statusLive=u=>u&&u.st&&u.st.at&&Date.now()-Date.parse(u.st.at)<864e5&&(u.st.text||u.st.audio)?u.st:null;
+A.statusgo=()=>{
+  const s=statusLive({st:me.status});
+  if(s){openSheet(sheetHead('Mon statut')+'<p class="small" style="margin:0">« '+esc(s.text||'Statut vocal')+' »</p><button class="btn primary w100" data-act="statusnew">'+ico('mic',16)+'Le remplacer</button><button class="btn ghost w100" data-act="statusdel">Supprimer mon statut</button>');return}
+  A.statusnew();
+};
+A.statusnew=()=>{
+  closeSheet();
+  setTimeout(()=>openCapture('Mon statut vocal','Une phrase courte (10 secondes), visible par tes amis pendant 24 h.',async r=>{
+    let audio=null;
+    if(r.blob)audio=await uploadVoice('posts/'+myId+'/status-'+Date.now()+'.'+extOf(r.mime),r);
+    me.status={text:(r.text||'').slice(0,140),audio:audio,at:new Date().toISOString()};
+    if(r.blob)me.statusLocal=URL.createObjectURL(r.blob);
+    save();toast('Statut publié ✔');if(view==='chats')renderChats();
+  }),260);
+};
+A.statusdel=()=>{me.status=null;save();closeSheet();if(view==='chats')renderChats()};
+A.stplay=t=>{
+  const id=t.dataset.id,u=id==='me'?{st:me.status,name:'Toi'}:U[id];
+  const s=statusLive(u);if(!s){if(t.dataset.cid)openChat(t.dataset.cid);return}
+  toast(u.name+' : '+snip(s.text||'Statut vocal',70),4000);
+  playSpec('st:'+id,speechFor('st:'+id));
+};
+const statusLine=c=>{if(c.group)return '';const s=statusLive(U[c.members[0]]);return s&&s.text?' · « '+esc(snip(s.text,40))+' »':''};
+
+/* ---------- Salon vocal (talkie-walkie) ---------- */
+let WK=false;
+function walkieComposer(){return '<button type="button" class="cbtn pri walkie" data-act="micstart" aria-label="Parler">'+ico('mic',26)+' Parler</button>'}
+A.wktog=()=>{WK=!WK;keepScroll(renderNew)};
+
+/* ---------- Qui est dispo ? ---------- */
+const DISPO=['ce soir','demain soir','ce week-end','samedi','dimanche','cette semaine'];
+function dispoHTML(){return sheetHead('Qui est dispo ?')+'<div class="chips">'+DISPO.map(d=>'<button class="chip" data-act="dispogo" data-w="'+d+'">'+d+'</button>').join('')+'</div>'}
+A.dispogo=t=>{
+  const c=conv(cur);addMsg(c,{f:'me',k:'text',text:'Qui est dispo '+t.dataset.w+' ?',poll:{o:['Dispo ✅','Peut-être 🤔','Pas dispo ❌']}});
+  closeSheet();renderMsgs(true);
+};
+
+/* ---------- Silence d'une discussion ---------- */
+A.cmute=()=>{
+  const c=conv(cur);c.muted=!c.muted;
+  sb.from('conv_members').update({muted:c.muted}).eq('conv_id',c.id).eq('user_id',myId).then(r=>{if(r.error)toast('Réglage non enregistré')});
+  setSheet(infoHTML(c));toast(c.muted?'Notifications coupées pour cette discussion':'Notifications rétablies');
+};
+
+/* ---------- Favoris ---------- */
+A.mfav=()=>{
+  const c=conv(MM.cid),m=c.msgs.find(x=>x.id===MM.mid);if(!m)return;
+  S.favs=S.favs||[];closeSheet();
+  if(S.favs.some(f=>f.mid===m.id)){S.favs=S.favs.filter(f=>f.mid!==m.id);save();toast('Retiré des favoris');return}
+  S.favs.unshift({mid:m.id,cid:c.id,from:m.f==='me'?meName():nameOf(m.f),text:m.text,k:m.k,audio:m.k==='voice'?(m.audio||null):null,dur:m.dur,t:m.t,conv:convTitle(c),voice:userOf(m.f).voice,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender});
+  S.favs=S.favs.slice(0,200);save();toast('⭐ Ajouté à tes favoris');
+};
+A.favs=()=>{
+  const l=S.favs||[];
+  openSheet(sheetHead('Mes favoris')+(l.length?'<div class="list" style="gap:8px">'+l.map(f=>'<div class="crow" style="align-items:center" data-key="fv:'+f.mid+'"><div class="cb"><b>'+esc(f.from)+' · '+esc(f.conv||'')+'</b><div class="small">'+esc(snip(f.text,80))+'</div></div><button class="play xs" data-act="play" aria-label="Écouter"><span class="pi" data-sz="14">'+ico('play',14)+'</span></button><button class="chip" data-act="favdel" data-id="'+f.mid+'" aria-label="Retirer">✕</button></div>').join('')+'</div>':'<p class="empty">Appuie sur « ⋯ » d\'un message puis « Ajouter aux favoris » : tes plus beaux vocaux seront gardés ici.</p>'));
+};
+A.favdel=t=>{S.favs=(S.favs||[]).filter(f=>f.mid!==t.dataset.id);save();A.favs()};
+
+/* ---------- Lecteur de texte ---------- */
+let RD='';
+A.reader=()=>openSheet(sheetHead('Lecteur de texte')+'<p class="small" style="margin:0">Colle un long message reçu ailleurs (WhatsApp, mail…) : Pépie te le lit avec ta voix de lecture.</p><textarea id="rdtxt" class="inp" maxlength="5000" placeholder="Colle ton texte ici…"></textarea><div data-key="rd:1"><button class="btn primary w100 plb" data-act="rdgo"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Lire à voix haute</span></button></div>');
+A.rdgo=()=>{
+  const t=(($('#rdtxt')||{}).value||'').trim();if(!t){toast('Colle un texte.');return}
+  if(np&&np.key==='rd:1'){stopPlay();return}
+  RD=t;playSpec('rd:1',speechFor('rd:1'));
+};
+
+/* ---------- Quiz perso ---------- */
+let QF=null,QZ=null;
+function quizFormHTML(){
+  return sheetHead('Quiz : connais-tu bien… moi ?')+'<p class="small" style="margin:0">Écris 3 à 5 questions sur toi, avec 3 réponses dont une bonne. Tes amis seront notés.</p>'+
+    QF.map((q,i)=>'<div class="qzq"><input class="qq" data-i="'+i+'" maxlength="80" placeholder="Question '+(i+1)+'" value="'+esc(q.t)+'">'+
+      q.o.map((o,j)=>'<input class="qo" data-i="'+i+'" data-j="'+j+'" maxlength="40" placeholder="Réponse '+'ABC'[j]+'" value="'+esc(o)+'">').join('')+
+      '<div class="qzc">Bonne réponse : '+[0,1,2].map(j=>'<button class="chip" data-act="qzc" data-i="'+i+'" data-j="'+j+'" aria-pressed="'+(q.a===j)+'">'+'ABC'[j]+'</button>').join('')+'</div></div>').join('')+
+    '<button class="btn primary w100" data-act="qzsend">'+ico('send',16)+'Envoyer le quiz</button>';
+}
+function qfRead(){
+  document.querySelectorAll('.qq').forEach(i=>{QF[+i.dataset.i].t=i.value});
+  document.querySelectorAll('.qo').forEach(i=>{QF[+i.dataset.i].o[+i.dataset.j]=i.value});
+}
+A.qzc=t=>{qfRead();QF[+t.dataset.i].a=+t.dataset.j;setSheet(quizFormHTML())};
+A.qzsend=()=>{
+  qfRead();
+  const q=QF.filter(x=>x.t.trim()&&x.o.every(o=>o.trim())).map(x=>({t:x.t.trim(),o:x.o.map(o=>o.trim()),a:x.a}));
+  if(q.length<3){toast('Il faut au moins 3 questions complètes (3 réponses chacune).');return}
+  const c=conv(cur);
+  addMsg(c,{f:'me',k:'text',text:'🧠 Quiz : connais-tu bien '+meName()+' ?',quiz:{q:q}});
+  closeSheet();renderMsgs(true);
+};
+function quizResults(c,m){return c.msgs.filter(x=>x.chal==='quizres'&&x.re===m.id)}
+function quizBubble(c,m){
+  const res=quizResults(c,m).sort((a,b)=>(b.qs||0)-(a.qs||0)),n=m.quiz.q.length,played=res.some(x=>x.f==='me');
+  return '<div class="chal"><span class="ct">🧠 Quiz perso · '+n+' questions</span><p class="tr" style="margin:0">'+esc(m.text.replace(/^🧠\s*/,''))+'</p>'+
+    (m.f==='me'?'<span class="small">C\'est ton quiz : tes amis jouent.</span>':(played?'<span class="small">Tu as déjà joué.</span>':'<button class="btn primary" data-act="qzplay" style="padding:8px 14px">Jouer</button>'))+
+    (res.length?'<div class="small">'+res.map((r,i)=>(i===0?'👑 ':'')+esc(r.f==='me'?'Toi':nameOf(r.f))+' : '+(r.qs||0)+'/'+n).join(' · ')+'</div>':'')+'</div>';
+}
+A.qzplay=t=>{
+  const c=conv(cur),id=t.closest('[data-mid]').dataset.mid,m=c.msgs.find(x=>x.id===id);if(!m)return;
+  QZ={cid:c.id,mid:id,i:0,s:0,done:false,pick:-1};openSheet(qzHTML());
+};
+function qzHTML(){
+  const c=conv(QZ.cid),m=c.msgs.find(x=>x.id===QZ.mid),qs=m.quiz.q,q=qs[QZ.i];
+  if(QZ.done)return sheetHead('Résultat')+'<p class="gtxt" style="text-align:center">'+QZ.s+' / '+qs.length+'</p><p class="small" style="text-align:center;margin:0">'+(QZ.s===qs.length?'Parfait, tu le connais par cœur !':QZ.s>=qs.length/2?'Pas mal du tout !':'Il va falloir passer plus de temps ensemble…')+'</p><button class="btn primary w100" data-act="close">Fermer</button>';
+  return sheetHead('Question '+(QZ.i+1)+' / '+qs.length)+'<p class="gtxt">'+esc(q.t)+'</p><div class="list" style="gap:8px">'+q.o.map((o,j)=>{
+    const shown=QZ.pick>=0,good=shown&&j===q.a,bad=shown&&j===QZ.pick&&j!==q.a;
+    return '<button class="lv" data-act="qzans" data-j="'+j+'"'+(shown?' disabled':'')+' aria-pressed="'+(good||bad)+'"><span><b>'+'ABC'[j]+' · '+esc(o)+(good?' ✅':'')+(bad?' ❌':'')+'</b></span></button>';
+  }).join('')+'</div>'+(QZ.pick>=0?'<button class="btn primary w100" data-act="qznext">Suivant</button>':'');
+}
+A.qzans=t=>{
+  const c=conv(QZ.cid),m=c.msgs.find(x=>x.id===QZ.mid),j=+t.dataset.j;
+  QZ.pick=j;if(j===m.quiz.q[QZ.i].a)QZ.s++;setSheet(qzHTML());
+};
+A.qznext=()=>{
+  const c=conv(QZ.cid),m=c.msgs.find(x=>x.id===QZ.mid);
+  if(QZ.i+1>=m.quiz.q.length){
+    QZ.done=true;
+    addMsg(c,{f:'me',k:'text',text:'🧠 '+meName()+' a obtenu '+QZ.s+'/'+m.quiz.q.length+' au quiz de '+nameOf(m.f)+' !',chal:'quizres',re:m.id,qs:QZ.s});
+    if(view==='chat'&&cur===c.id)renderMsgs(true);
+  }else{QZ.i++;QZ.pick=-1}
+  setSheet(qzHTML());
+};
+
+/* ---------- Blind test vocal ---------- */
+let BL=null;
+function blindPool(c){return c.msgs.filter(m=>m.f!=='me'&&m.k==='voice'&&(m.audio||m.localAudio))}
+function blindNext(c){
+  const pool=blindPool(c);if(!pool.length)return false;
+  const m=pick(pool);BL=Object.assign({cid:c.id,mid:m.id,pick:null,ok:0,total:0},BL&&BL.cid===c.id?{ok:BL.ok,total:BL.total}:{});
+  return true;
+}
+function blindHTML(){
+  const c=conv(BL.cid),m=c.msgs.find(x=>x.id===BL.mid),key='m:'+c.id+':'+m.id;
+  const names=c.members.slice();const shown=BL.pick!==null;
+  return sheetHead('Blind test vocal')+'<p class="small" style="margin:0">Score : '+BL.ok+' / '+BL.total+'</p>'+
+    '<div data-key="'+key+'"><button class="btn primary w100 plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter l\'extrait</span></button></div>'+
+    '<div class="lbl">Qui parle ?</div><div class="chips">'+names.map(id=>'<button class="chip" data-act="blpick" data-id="'+id+'"'+(shown?' disabled':'')+' aria-pressed="'+(shown&&(id===m.f||id===BL.pick))+'">'+esc(nameOf(id))+(shown&&id===m.f?' ✅':'')+'</button>').join('')+'</div>'+
+    (shown?'<p class="gtxt">« '+esc(m.text)+' »</p><button class="btn primary w100" data-act="blnext">Suivant</button>':'');
+}
+A.blpick=t=>{const c=conv(BL.cid),m=c.msgs.find(x=>x.id===BL.mid);BL.pick=t.dataset.id;BL.total++;if(t.dataset.id===m.f)BL.ok++;setSheet(blindHTML())};
+A.blnext=()=>{stopPlay();if(blindNext(conv(BL.cid)))setSheet(blindHTML())};
+
+/* ---------- Messages programmés ---------- */
+let SC=null;
+function schedPresets(){
+  const d=(dd,h)=>{const x=new Date();x.setDate(x.getDate()+dd);x.setHours(h,0,0,0);return x.getTime()};
+  const l=[['Dans 1 heure',Date.now()+36e5],['Ce soir 20 h',d(0,20)],['Demain 8 h',d(1,8)],['Demain 18 h',d(1,18)]];
+  return l.filter(x=>x[1]>Date.now()+6e4);
+}
+const dtLocal=ts=>{const d=new Date(ts-new Date(ts).getTimezoneOffset()*6e4);return d.toISOString().slice(0,16)};
+async function schedList(c){
+  const r=await sb.from('scheduled_msgs').select('*').eq('conv_id',c.id).eq('sender',myId).eq('sent',false).order('send_at',{ascending:true});
+  SC.list=r.data||[];if(!$('#schl'))return;$('#schl').innerHTML=schedItems();
+}
+function schedItems(){
+  return SC.list&&SC.list.length?'<div class="lbl">Déjà programmés</div>'+SC.list.map(x=>'<div class="srow"><div><b>'+esc(x.kind==='voice'?'🎤 Vocal':snip(x.body,40))+'</b><p class="small">'+esc(whenLabel(Date.parse(x.send_at)))+'</p></div><button class="chip" data-act="schdel" data-id="'+x.id+'">Annuler</button></div>').join(''):'';
+}
+function schedHTML(){
+  return sheetHead('Message programmé')+
+    '<div class="lbl">Envoyer</div><div class="chips">'+schedPresets().map(p=>'<button class="chip" data-act="schwhen" data-t="'+p[1]+'" aria-pressed="'+(SC.at===p[1])+'">'+p[0]+'</button>').join('')+'</div>'+
+    '<input id="schdt" class="inp" type="datetime-local" value="'+(SC.at?dtLocal(SC.at):'')+'" aria-label="Date et heure">'+
+    '<div class="cform"><input id="schtxt" maxlength="500" placeholder="Ton message…" value="'+esc(SC.text||'')+'" aria-label="Message"><button class="btn primary" data-act="schsend" style="padding:10px 16px">Programmer</button></div>'+
+    '<button class="btn ghost w100" data-act="schvoice">'+ico('mic',16)+'Programmer un vocal</button>'+
+    '<div id="schl">'+schedItems()+'</div>';
+}
+function schedRead(){
+  const t=$('#schtxt');if(t)SC.text=t.value;
+  const d=$('#schdt');if(d&&d.value){const v=new Date(d.value).getTime();if(v)SC.at=v}
+}
+A.schwhen=t=>{schedRead();SC.at=+t.dataset.t;setSheet(schedHTML());schedList(conv(cur))};
+async function schedInsert(c,row){
+  if(!SC.at||SC.at<Date.now()+3e4){toast('Choisis une date dans le futur.');return false}
+  const r=await sb.from('scheduled_msgs').insert(Object.assign({conv_id:c.id,send_at:new Date(SC.at).toISOString()},row));
+  if(r.error){toast('Non programmé : '+r.error.message);return false}
+  toast('Programmé pour '+whenLabel(SC.at)+' ✔');return true;
+}
+A.schsend=async()=>{
+  schedRead();const c=conv(cur),t=(SC.text||'').trim();
+  if(!t){toast('Écris un message.');return}
+  if(await schedInsert(c,{kind:'text',body:t})){SC.text='';setSheet(schedHTML());schedList(c)}
+};
+A.schvoice=()=>{
+  schedRead();const c=conv(cur);
+  if(!SC.at){toast("Choisis d'abord quand l'envoyer.");return}
+  const at=SC.at;
+  openCapture('Vocal programmé','Il partira '+whenLabel(at)+'.',async r=>{
+    const id=uuid();let audio=null;
+    if(r.blob)audio=await uploadVoice(c.id+'/'+id+'.'+extOf(r.mime),r);
+    SC={at:at,text:'',list:[]};
+    await schedInsert(c,{id:id,kind:'voice',body:r.text||'',dur:r.dur,audio:audio});
+  });
+};
+A.schdel=async t=>{await sb.from('scheduled_msgs').delete().eq('id',t.dataset.id);schedList(conv(cur))};
+
+/* ---------- Livre d'or vocal ---------- */
+let GB=null;
+function bookLink(id){return location.origin+location.pathname+'?lb='+id}
+A.books=async()=>{
+  openSheet(sheetHead('Mes livres d\'or')+'<p class="small" style="margin:0">Un lien, et chaque ami y laisse un vocal (anniversaire, mariage, départ…). Les invités doivent avoir un compte Pépie.</p><div class="cform"><input id="gbt" maxlength="60" placeholder="Titre (ex : Mariage de mon frère)" aria-label="Titre"><button class="btn primary" data-act="gbnew" style="padding:10px 16px">Créer</button></div><div id="gbl" class="list" style="gap:8px"><p class="small">Chargement…</p></div>');
+  const r=await sb.from('guestbooks').select('*').eq('owner',myId).order('created_at',{ascending:false});
+  const b=$('#gbl');if(!b)return;
+  const l=r.data||[];
+  b.innerHTML=l.length?l.map(x=>'<div class="crow" style="align-items:center"><div class="cb"><b>'+esc(x.title)+'</b></div><button class="chip" data-act="gbopen" data-id="'+x.id+'">Ouvrir</button><button class="chip" data-act="gbcopy" data-id="'+x.id+'">Copier le lien</button></div>').join(''):'<p class="empty">Aucun livre d\'or pour l\'instant.</p>';
+};
+A.gbnew=async()=>{
+  const t=(($('#gbt')||{}).value||'').trim();if(!t){toast('Donne un titre.');return}
+  const r=await sb.from('guestbooks').insert({title:t}).select().maybeSingle();
+  if(r.error){toast('Création impossible : '+r.error.message);return}
+  toast('Livre d\'or créé. Copie le lien pour l\'envoyer.');A.books();
+};
+A.gbcopy=t=>copyText(bookLink(t.dataset.id)+' ','Lien copié : envoie-le à tes amis');
+A.gbopen=t=>openBook(t.dataset.id);
+async function openBook(id){
+  const b=await sb.from('guestbooks').select('*').eq('id',id).maybeSingle();
+  if(!b.data){toast('Livre d\'or introuvable.');return}
+  const r=await sb.from('gb_entries').select('*').eq('book',id).order('created_at',{ascending:true});
+  const rows=r.data||[];await ensureProfiles(rows.map(x=>x.author).concat([b.data.owner]));
+  GB={id:id,book:b.data,entries:rows.map(x=>({id:x.id,u:x.author===myId?'me':x.author,text:x.body,dur:x.dur,audio:x.audio,t:Date.parse(x.created_at)}))};
+  openSheet(bookHTML());
+}
+function bookHTML(){
+  const own=GB.book.owner===myId?'me':GB.book.owner;
+  return sheetHead('📖 '+esc(GB.book.title))+'<p class="small" style="margin:0">Livre d\'or de '+esc(own==='me'?'toi':nameOf(own))+' · '+GB.entries.length+' vocal'+(GB.entries.length>1?'ux':'')+'</p>'+
+    '<button class="btn primary w100" data-act="gbadd">'+ico('mic',16)+'Laisser un vocal</button>'+
+    (GB.entries.length?'<div class="list" style="gap:10px">'+GB.entries.map(e=>{const u=userOf(e.u);return '<div class="da" data-key="gb:'+e.id+'"><span class="av">'+avatar(u.a,36)+'</span><div class="cb"><b>'+esc(e.u==='me'?'Toi':u.name)+'</b><div class="player" style="margin-top:4px"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(e.id,18)+'</div><span class="dur">'+ico('mic',14)+fmt(e.dur||5)+'</span></div><p class="tr small">'+esc(e.text)+'</p></div></div>'}).join('')+'</div>':'<p class="empty">Sois le premier à laisser un mot.</p>');
+}
+A.gbadd=()=>{
+  const id0=GB.id;
+  openCapture('Ton vocal pour le livre d\'or','Quelques mots chaleureux (jusqu\'à 1 minute).',async r=>{
+    const id=uuid();let audio=null;
+    if(r.blob)audio=await uploadVoice('posts/'+myId+'/gb-'+id+'.'+extOf(r.mime),r);
+    const ins=await sb.from('gb_entries').insert({id:id,book:id0,body:r.text||'',dur:r.dur||0,audio:audio});
+    if(ins.error){toast('Non envoyé : '+ins.error.message);return}
+    toast('Merci ! Ton vocal est dans le livre d\'or ✔');openBook(id0);
+  });
+};
+
+/* ---------- Succès et boutique d'avatar ---------- */
+const GATE={crown:'streak7',halo:'voice50',wizard:'poll1',devil:'roast1',chef:'texts100',cowboy:'daily3',party:'capsule1',pirate:'react25'};
+function myStats(){
+  let voice=0,texts=0,roast=0,poll=0,react=0,night=0,streak=0;
+  convs.forEach(c=>{
+    c.msgs.forEach(m=>{
+      if(m.f!=='me')return;
+      if(m.k==='voice')voice++;else if(m.k==='text')texts++;
+      if(m.k==='ai'&&m.tag==='Roast')roast++;
+      if(m.poll)poll++;
+      Object.keys(m.rx||{}).forEach(e=>{react+=m.rx[e]});
+      const h=new Date(m.t).getHours();if(h<5&&m.k!=='sys')night++;
+    });
+    streak=Math.max(streak,streakOf(c));
+  });
+  const capsule=convs.reduce((n,c)=>n+(c.caps||[]).filter(x=>x.f==='me').length,0);
+  const friends=new Set();convs.forEach(c=>c.members.forEach(id=>friends.add(id)));
+  return {voice:voice,texts:texts,roast:roast,poll:poll,react:react,night:night,streak:streak,capsule:capsule,friends:friends.size,daily:Math.max(S.dn||0,DA.filter(a=>a.u==='me').length)};
+}
+const BADGES=[
+  ['voice10','🎤','Bavard','Envoyer 10 vocaux',s=>s.voice>=10],
+  ['voice50','🎙️','Podcasteur','Envoyer 50 vocaux (débloque l\'auréole)',s=>s.voice>=50],
+  ['texts100','⌨️','Plume','Envoyer 100 messages écrits (débloque la toque)',s=>s.texts>=100],
+  ['roast1','🔥','Première flamme','Partager un roast (débloque les cornes)',s=>s.roast>=1],
+  ['streak7','🏅','Fidèle','7 jours de série dans une discussion (débloque la couronne)',s=>s.streak>=7],
+  ['streak30','🥇','Inséparables','30 jours de série',s=>s.streak>=30],
+  ['poll1','📊','Démocrate','Lancer un sondage (débloque le chapeau de magicien)',s=>s.poll>=1],
+  ['capsule1','⏳','Voyageur du temps','Sceller une capsule (débloque le chapeau de fête)',s=>s.capsule>=1],
+  ['react25','👏','Populaire','Recevoir 25 réactions (débloque le bandeau pirate)',s=>s.react>=25],
+  ['daily3','☀️','Rituel','Répondre 3 fois au vocal du jour (débloque le chapeau de cowboy)',s=>s.daily>=3],
+  ['friends3','👯','Sociable','Discuter avec 3 amis',s=>s.friends>=3],
+  ['night','🦉','Oiseau de nuit','Envoyer un message entre minuit et 5 h',s=>s.night>=1]
+];
+const isUnlocked=b=>(S.badges||[]).indexOf(b)>=0;
+const isLocked=acc=>!!GATE[acc]&&!isUnlocked(GATE[acc])&&(me.a&&me.a.acc)!==acc;
+function checkBadges(){
+  if(!myId||!convs)return;
+  S.badges=S.badges||[];const s=myStats();let nw=[];
+  BADGES.forEach(b=>{if(S.badges.indexOf(b[0])<0&&b[4](s)){S.badges.push(b[0]);nw.push(b)}});
+  if(nw.length){save();nw.forEach((b,i)=>setTimeout(()=>toast('🏆 Succès débloqué : '+b[2]+' '+b[1],4500),i*2500))}
+}
+let badgeT=0;
+function badgeSoon(){clearTimeout(badgeT);badgeT=setTimeout(checkBadges,400)}
+A.badges=()=>{
+  const s=myStats();
+  openSheet(sheetHead('Succès')+'<p class="small" style="margin:0">'+(S.badges||[]).length+' / '+BADGES.length+' débloqués. Certains offrent un accessoire d\'avatar exclusif.</p><div class="list" style="gap:8px">'+
+    BADGES.map(b=>'<div class="badge'+(isUnlocked(b[0])?'':' off')+'"><span class="e">'+b[1]+'</span><div><b>'+b[2]+'</b><span class="small">'+b[3]+'</span></div></div>').join('')+'</div>');
+};
+A.avlock=t=>{
+  const b=BADGES.filter(x=>x[0]===GATE[t.dataset.v])[0];
+  toast('🔒 Accessoire à débloquer : '+(b?b[3].replace(/ \(.*\)/,''):'succès'),4500);
+};
+
+/* ---------- Rétrospective du mois ---------- */
+const STOP=new Set('dans pour avec tout tous cette mais comme plus bien fait très être avoir elle elles nous vous leur leurs sont c\'est j\'ai qui que quoi pas par sur une des les aux ces ses mon ton son mes tes alors donc aussi déjà encore ça oui non ok'.split(' '));
+function recapStats(){
+  const since=Date.now()-30*864e5;let sent=0,voice=0,vsec=0,texts=0,best=null;
+  const hours=new Array(24).fill(0),emo={},words={},conv_n={};
+  convs.forEach(c=>c.msgs.forEach(m=>{
+    if(m.f!=='me'||m.t<since||m.k==='sys'||m.k==='ai')return;
+    sent++;conv_n[c.id]=(conv_n[c.id]||0)+1;hours[new Date(m.t).getHours()]++;
+    if(m.k==='voice'){voice++;vsec+=m.dur||0;const rx=Object.keys(m.rx||{}).reduce((n,e)=>n+m.rx[e],0);if(!best||rx>best.rx)best={rx:rx,text:m.text}}
+    else texts++;
+    (String(m.text||'').match(/\p{Extended_Pictographic}/gu)||[]).forEach(e=>{emo[e]=(emo[e]||0)+1});
+    String(m.text||'').toLowerCase().split(/[^\p{L}']+/u).forEach(w=>{if(w.length>=4&&!STOP.has(w))words[w]=(words[w]||0)+1});
+  }));
+  const top=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0]||null;
+  const tc=top(conv_n),tcv=tc&&conv(tc),hr=hours.indexOf(Math.max.apply(null,hours));
+  return {sent:sent,voice:voice,vsec:vsec,texts:texts,best:best,emoji:top(emo),word:top(words),friend:tcv?convTitle(tcv):null,hour:sent?hr:null,streak:convs.reduce((n,c)=>Math.max(n,streakOf(c)),0)};
+}
+function drawRecap(r){
+  const W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#FFD23F');g.addColorStop(1,'#FF8FA0');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='#14142B';x.font='800 64px system-ui,sans-serif';x.fillText('Mon mois sur Pépie',70,130);
+  x.font='600 34px system-ui,sans-serif';x.fillText(meName()+' · '+new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'}),70,185);
+  const lines=[
+    [r.sent+' messages envoyés','💬'],
+    [r.voice+' vocaux · '+Math.round(r.vsec/60)+' min de voix','🎤'],
+    [r.friend?'Ami le plus bavard : '+r.friend:'Pas encore d\'ami le plus bavard','👯'],
+    [r.emoji?'Emoji préféré : '+r.emoji:'Aucun emoji favori','😄'],
+    [r.word?'Mot le plus utilisé : « '+r.word+' »':'Aucun mot récurrent','🗣️'],
+    [r.hour!==null?'Heure de pointe : '+r.hour+' h':'—','⏰'],
+    [r.streak>1?'Plus longue série : '+r.streak+' jours':'Série en cours : à lancer !','🔥']
+  ];
+  x.textBaseline='alphabetic';let y=330;
+  lines.forEach(l=>{x.font='700 54px system-ui,sans-serif';x.fillText(l[1],70,y);x.font='700 46px system-ui,sans-serif';x.fillText(l[0],160,y);y+=118});
+  if(r.best&&r.best.text){x.font='italic 600 36px system-ui,sans-serif';x.fillText('Vocal star : « '+String(r.best.text).slice(0,46)+(r.best.text.length>46?'…':'')+' »',70,y+30)}
+  x.font='800 40px system-ui,sans-serif';x.fillText('Pépie · parle, écris, rigole',70,H-70);
+  return new Promise(res=>{
+    const svg=avatar(me.a,300).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
+    const img=new Image();
+    img.onload=()=>{x.drawImage(img,W-390,60,300,300);res(cv)};
+    img.onerror=()=>res(cv);
+    setTimeout(()=>res(cv),2500);
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+}
+let RECAP=null;
+A.recap=async()=>{
+  openSheet(sheetHead('Mon mois sur Pépie')+'<p class="small">Je prépare ta rétrospective…</p>');
+  const r=recapStats(),cv=await drawRecap(r);
+  RECAP=cv;
+  if(!$('#panel')||!$('#panel').textContent.includes('rétrospective'))return;
+  setSheet(sheetHead('Mon mois sur Pépie')+'<img class="recimg" alt="Rétrospective" src="'+cv.toDataURL('image/png')+'"><button class="btn primary w100" data-act="recshare">'+ico('send',16)+'Partager l\'image</button><p class="small" style="margin:0">Sinon, garde l\'image appuyée pour l\'enregistrer.</p>');
+};
+A.recshare=()=>{
+  if(!RECAP)return;
+  RECAP.toBlob(async b=>{
+    const f=new File([b],'pepie-mon-mois.png',{type:'image/png'});
+    try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Mon mois sur Pépie'});return}}catch(e){return}
+    toast("Appuie longuement sur l'image pour l'enregistrer.",4000);
+  },'image/png');
+};
+
+A.blindgo=()=>{const c=conv(cur);BL=null;if(!blindNext(c)){toast('Il faut au moins un vocal reçu dans cette discussion.');return}openSheet(blindHTML())};
 })();</script></body></html>
