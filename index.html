@@ -1031,7 +1031,7 @@ function playSpec(key,sp,after){
     return;
   }
   if(fun){
-    startPlay(key,{text:fun.rewrite?fun.rewrite(sp.text):sp.text,pitch:fun.tts.pitch,rateMul:fun.tts.rate,gender:fun.tts.gender||sp.gender,after:after});
+    startPlay(key,{text:sp.text,pitch:fun.tts.pitch,rateMul:fun.tts.rate,gender:fun.tts.gender||sp.gender,after:after});
     return;
   }
   startPlay(key,Object.assign({after:after},sp));
@@ -1039,29 +1039,15 @@ function playSpec(key,sp,after){
 
 
 /* ---------- Voix fun (effets sur les vrais vocaux, style sur les textes lus) ---------- */
-function rwPirate(t){
-  let s=String(t);
-  [[/\b(bonjour|salut|coucou|hello)\b/gi,'Ohé'],[/\b(mon ami|mes amis|les amis|ami|amis)\b/gi,'moussaillon'],[/\boui\b/gi,'Aye'],[/\bnon\b/gi,'Par Neptune, non'],[/\b(très|trop)\b/gi,'sacrément'],[/\b(argent|euros?)\b/gi,'doublons'],[/\b(maison|appartement)\b/gi,'navire'],[/\b(manger|dîner|déjeuner)\b/gi,'faire bombance'],[/\b(boire|verre)\b/gi,'chope de rhum'],[/\bmerci\b/gi,'mille mercis, camarade']].forEach(r=>{s=s.replace(r[0],r[1])});
-  return 'Arrr, '+s+' '+pick(['Mille sabords !','Yo ho ho !','Par la barbe de Barbe-Noire !','Tonnerre de Brest !']);
-}
-function rwComment(t){
-  return pick(['Mesdames et messieurs, ','Et là, incroyable : ','Attention, ça va être énorme : '])+String(t)+' '+pick(['Quelle action !','Il n\'y a plus qu\'à applaudir !','Et c\'est le but, mes amis !','Du jamais vu dans l\'histoire du message !']);
-}
-function rwRobot(t){
-  return 'Bip boup. Transmission. '+String(t).replace(/\bje\b/gi,'cette unité').replace(/[,;]/g,' bip').replace(/!+/g,'. Fin de message.')+' Fin de transmission.';
-}
-function rwMamie(t){
-  return 'Oh mon petit, '+String(t)+' '+pick(['Mets une écharpe, hein !','Tu manges bien au moins ?','Appelle-moi quand tu rentres.']);
-}
 const FUN=[
-  {id:'pirate',label:'Pirate',e:'🏴‍☠️',rate:0.88,dist:0.3,echo:0.15,tts:{pitch:0.55,rate:0.85,gender:'m'},rewrite:rwPirate},
-  {id:'comment',label:'Commentateur',e:'🎙️',rate:1.08,band:true,echo:0.3,tts:{pitch:1.1,rate:1.35,gender:'m'},rewrite:rwComment},
-  {id:'robot',label:'Robot',e:'🤖',ring:55,tts:{pitch:0.45,rate:0.9},rewrite:rwRobot},
+  {id:'pirate',label:'Pirate',e:'🏴‍☠️',rate:0.88,dist:0.3,echo:0.15,tts:{pitch:0.55,rate:0.85,gender:'m'}},
+  {id:'comment',label:'Commentateur',e:'🎙️',rate:1.08,band:true,echo:0.3,tts:{pitch:1.1,rate:1.35,gender:'m'}},
+  {id:'robot',label:'Robot',e:'🤖',ring:55,tts:{pitch:0.45,rate:0.9}},
   {id:'monstre',label:'Monstre',e:'👹',rate:0.68,dist:0.5,tts:{pitch:0.1,rate:0.7,gender:'m'}},
   {id:'souris',label:'Souris',e:'🐭',rate:1.55,tts:{pitch:2,rate:1.25,gender:'f'}},
   {id:'radio',label:'Vieille radio',e:'📻',band:true,dist:0.2,tts:{pitch:1,rate:1.05}},
   {id:'grotte',label:'Grotte',e:'🕳️',echo:0.55,rate:0.95,tts:{pitch:0.8,rate:0.8}},
-  {id:'mamie',label:'Grand-mère',e:'👵',rate:0.92,warm:true,tts:{pitch:1.4,rate:0.8,gender:'f'},rewrite:rwMamie}
+  {id:'mamie',label:'Grand-mère',e:'👵',rate:0.92,warm:true,tts:{pitch:1.4,rate:0.8,gender:'f'}}
 ];
 let actx=null;
 function getCtx(){
@@ -1480,7 +1466,7 @@ function mmenuHTML(c,m,sub){
   const row=(act,ic,l,x)=>'<button class="ctact" data-act="'+act+'"'+(x||'')+'><span>'+ico(ic,20)+'</span><span class="cinfo"><b style="font-size:15px">'+l+'</b></span></button>';
   if(m.k==='ai')return head+quick;
   if(sub==='tr')return head+'<div class="lbl">Traduire en</div><div class="chips">'+LANGS.map(l=>'<button class="chip" data-act="mtr" data-v="'+l[0]+'">'+l[0]+'</button>').join('')+'</div>';
-  if(sub==='fun')return head+'<div class="lbl">Lire ce message avec la voix…</div><div class="chips">'+FUN.map(f=>'<button class="chip" data-act="mfun" data-v="'+f.id+'">'+f.e+' '+f.label+'</button>').join('')+'</div><p class="small" style="margin:0">Sur un vocal, l\'effet transforme la vraie voix. Sur un texte, la synthèse change de ton et de style.</p>';
+  if(sub==='fun')return head+'<div class="lbl">Lire ce message avec la voix…</div><div class="chips">'+FUN.map(f=>'<button class="chip" data-act="mfun" data-v="'+f.id+'">'+f.e+' '+f.label+'</button>').join('')+'</div><p class="small" style="margin:0">Sur un vocal, l\'effet transforme la vraie voix. Sur un texte, seule la voix change : les mots restent les mêmes.</p>';
   return head+quick+'<div class="list" style="gap:8px">'+
     row('mreply','reply','Répondre')+
     row('msum','sparkle','Résumer (IA)')+
