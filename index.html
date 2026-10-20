@@ -459,9 +459,66 @@ const BEARDS=[['none','Rasé'],['mustache','Moustache'],['goatee','Bouc'],['full
 const EXTRAS=[['none','Aucun'],['blush','Joues roses'],['freckles','Taches de rousseur'],['sweat','Goutte de sueur'],['scar','Cicatrice'],['tear','Larme']];
 const ACCS=[['none','Aucun'],['glasses','Lunettes'],['sunglasses','Lunettes de soleil'],['headphones','Casque'],['crown','Couronne'],['cap','Casquette'],['pirate','Pirate'],['party','Chapeau de fête'],['cowboy','Cowboy'],['flowers','Fleurs'],['bunny','Oreilles de lapin'],['cat','Oreilles de chat'],['devil','Cornes de diable'],['halo','Auréole'],['headband','Bandeau'],['beanie','Bonnet'],['clown','Nez de clown'],['wizard','Chapeau de magicien'],['chef','Toque']];
 const FITS=[['tee','T-shirt'],['hoodie','Sweat'],['stripes','Marinière'],['suit','Costume']];
+
+const ANIMALS=[['human','Humain'],['cat','Chat'],['dog','Chien'],['bunny','Lapin'],['fox','Renard'],['bear','Ours'],['panda','Panda'],['frog','Grenouille'],['owl','Hibou'],['pig','Cochon'],['lion','Lion'],['mouse','Souris'],['koala','Koala'],['monkey','Singe']];
+const ANDEF={cat:'#FFB86B',dog:'#E8B48A',bunny:'#FFFFFF',fox:'#FF8A3D',bear:'#8D5A3C',panda:'#FFFFFF',frog:'#7ED957',owl:'#B08968',pig:'#FF9EC0',lion:'#E8B84A',mouse:'#BFC3D9',koala:'#A9AEC4',monkey:'#A9703B'};
+const FURS=['#FFB86B','#FF8A3D','#E8B48A','#C98E63','#8D5A3C','#5A3825','#FFFFFF','#BFC3D9','#2B2B3B','#E8B84A','#FF9EC0','#7ED957','#C9B6FF'];
+function mixc(h,t){const n=parseInt(h.slice(1),16),k=[n>>16&255,n>>8&255,n&255],i=[20,20,43];return '#'+k.map((v,j)=>('0'+Math.round(v*(1-t)+i[j]*t).toString(16)).slice(-2)).join('')}
+/* Animaux : [derrière la tête, tête, devant (museau, nez…)] */
+function animalSVG(an,fur,fl,ln,st){
+  const dk=mixc(fur,.35),mz='#FFF4E6',pk='#FF9EC0',dark='#2B2B3B';
+  let back='',head='<circle cx="50" cy="52" r="26" '+fl(fur,3)+'/>',front='';
+  const circ=(x,y,r,f)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" '+fl(f,2.6)+'/>';
+  const nose=(f)=>'<ellipse cx="50" cy="57" rx="4.2" ry="3" fill="'+(f||INK)+'" '+st+' stroke-width="1.6"/>';
+  const muz=(c)=>'<ellipse cx="50" cy="63" rx="14" ry="10" '+fl(c||mz,2)+'/>';
+  const whisk='<path d="M30 60l-11-2M30 64l-11 3M70 60l11-2M70 64l11 3" '+ln(1.8)+'/>';
+  if(an==='cat'){
+    back='<path d="M24 44L25 12L47 29z" '+fl(fur,2.8)+'/><path d="M76 44L75 12L53 29z" '+fl(fur,2.8)+'/><path d="M30 36L30 22L40 30z" fill="'+pk+'"/><path d="M70 36L70 22L60 30z" fill="'+pk+'"/>';
+    front=muz()+nose(pk)+whisk;
+  }else if(an==='dog'){
+    back='<path d="M28 32C8 30 6 68 22 70C32 64 32 46 31 34z" '+fl(dk,2.8)+'/><path d="M72 32C92 30 94 68 78 70C68 64 68 46 69 34z" '+fl(dk,2.8)+'/>';
+    front='<ellipse cx="61" cy="49" rx="8.5" ry="10" fill="'+dk+'"/>'+muz()+nose();
+  }else if(an==='bunny'){
+    back='<path d="M31 36C22 6 30 -6 38 -2C46 4 45 22 43 34z" '+fl(fur,2.8)+'/><path d="M69 36C78 6 70 -6 62 -2C54 4 55 22 57 34z" '+fl(fur,2.8)+'/><path d="M34 28C30 10 34 2 37 3C41 6 40 18 40 28z" fill="'+pk+'"/><path d="M66 28C70 10 66 2 63 3C59 6 60 18 60 28z" fill="'+pk+'"/>';
+    front=muz()+'<path d="M46 56h8l-4 5z" fill="'+pk+'" '+st+' stroke-width="1.6"/>';
+  }else if(an==='fox'){
+    back='<path d="M22 46L22 8L48 28z" '+fl(fur,2.8)+'/><path d="M78 46L78 8L52 28z" '+fl(fur,2.8)+'/><path d="M27 36L27 20L39 29z" fill="'+dark+'"/><path d="M73 36L73 20L61 29z" fill="'+dark+'"/>';
+    front='<path d="M25 58C31 72 44 76 50 66C56 76 69 72 75 58C66 61 58 55 50 55C42 55 34 61 25 58z" '+fl('#FFFFFF',2.2)+'/>'+nose()+whisk;
+  }else if(an==='bear'){
+    back=circ(28,30,10,fur)+circ(72,30,10,fur)+circ(28,30,5,dk)+circ(72,30,5,dk);
+    front=muz()+nose();
+  }else if(an==='panda'){
+    back=circ(28,30,10,dark)+circ(72,30,10,dark);
+    front='<ellipse cx="39" cy="50" rx="7.5" ry="9.5" transform="rotate(20 39 50)" fill="'+dark+'"/><ellipse cx="61" cy="50" rx="7.5" ry="9.5" transform="rotate(-20 61 50)" fill="'+dark+'"/>'+nose();
+  }else if(an==='frog'){
+    back=circ(32,32,11,fur)+circ(68,32,11,fur)+'<circle cx="32" cy="32" r="5" fill="#fff"/><circle cx="68" cy="32" r="5" fill="#fff"/>';
+    head='<ellipse cx="50" cy="54" rx="30" ry="24" '+fl(fur,3)+'/>';
+    front='<circle cx="47" cy="56" r="1.4" fill="'+INK+'"/><circle cx="53" cy="56" r="1.4" fill="'+INK+'"/><ellipse cx="28" cy="62" rx="5" ry="3.2" fill="#FF8FA0" opacity=".7"/><ellipse cx="72" cy="62" rx="5" ry="3.2" fill="#FF8FA0" opacity=".7"/>';
+  }else if(an==='owl'){
+    back='<path d="M27 38L22 10L44 27z" '+fl(dk,2.8)+'/><path d="M73 38L78 10L56 27z" '+fl(dk,2.8)+'/>';
+    front=circ(41,50,12.5,mz)+circ(59,50,12.5,mz)+'<path d="M45.5 57h9L50 66z" fill="#FFB020" '+st+' stroke-width="2"/>';
+  }else if(an==='pig'){
+    back='<path d="M27 38L20 14L44 26z" '+fl(dk,2.8)+'/><path d="M73 38L80 14L56 26z" '+fl(dk,2.8)+'/>';
+    front='<ellipse cx="50" cy="62" rx="12" ry="9" '+fl('#FF7FA6',2.2)+'/><ellipse cx="45.5" cy="62" rx="1.8" ry="2.6" fill="'+INK+'"/><ellipse cx="54.5" cy="62" rx="1.8" ry="2.6" fill="'+INK+'"/>';
+  }else if(an==='lion'){
+    back=circ(50,52,36,mixc('#B8741A',.15)).replace('<circle','<circle')+circ(27,28,8,dk)+circ(73,28,8,dk);
+    front=muz()+nose();
+  }else if(an==='mouse'){
+    back=circ(24,30,14,fur)+circ(76,30,14,fur)+circ(24,30,8,pk)+circ(76,30,8,pk);
+    front=muz('#FFFFFF')+nose(pk)+whisk;
+  }else if(an==='koala'){
+    back=circ(22,38,14,fur)+circ(78,38,14,fur)+circ(22,38,8,'#EEF0F8')+circ(78,38,8,'#EEF0F8');
+    front='<ellipse cx="50" cy="58" rx="6.5" ry="8.5" fill="'+dark+'" '+st+' stroke-width="1.6"/>';
+  }else if(an==='monkey'){
+    back=circ(21,54,10,fur)+circ(79,54,10,fur)+circ(21,54,5.5,'#F6C9A0')+circ(79,54,5.5,'#F6C9A0');
+    front='<path d="M50 44C42 40 33 42 33 51C33 56 36 58 38 60C32 66 38 78 50 78C62 78 68 66 62 60C64 58 67 56 67 51C67 42 58 40 50 44z" '+fl('#F6D9B8',2.2)+'/><circle cx="47.5" cy="58" r="1.1" fill="'+INK+'"/><circle cx="52.5" cy="58" r="1.1" fill="'+INK+'"/>';
+  }
+  return [back,head,front];
+}
 const AVCATS=[
+  {k:'animal',label:'Animal',opts:ANIMALS},
   {k:'bg',label:'Fond',vals:BGS},{k:'pat',label:'Motif',opts:PATS},
-  {k:'skin',label:'Peau',vals:SKINS},
+  {k:'skin',label:'Peau',vals:SKINS,only:'human'},{k:'fur',label:'Pelage',vals:FURS,only:'animal'},
   {k:'hair',label:'Coiffure',opts:HAIRS},{k:'hairc',label:'Couleur',vals:HAIRCS},
   {k:'eyes',label:'Yeux',opts:EYES},{k:'brows',label:'Sourcils',opts:BROWS},
   {k:'mouth',label:'Bouche',opts:MOUTHS},{k:'beard',label:'Barbe',opts:BEARDS},
@@ -469,6 +526,7 @@ const AVCATS=[
   {k:'fit',label:'Tenue',opts:FITS},{k:'out',label:'Couleur tenue',vals:OUTS}
 ];
 const AVKEYS=AVCATS.map(c=>c.k);
+const isAnimal=a=>!!(a&&a.animal&&a.animal!=='human'&&ANDEF[a.animal]);
 function avatar(a,size){
   const st='stroke="'+INK+'" stroke-linecap="round" stroke-linejoin="round"',hc=a.hairc||'#2B1B14',hair=a.hair||'none';
   const sk=a.skin||'#F6C9A0',out=a.out||'#FFFFFF',fit=a.fit||'tee';
@@ -506,6 +564,7 @@ function avatar(a,size){
   if(fit==='suit')body+='<path d="M40 77l10 13 10-13z" fill="#fff" '+st+' stroke-width="2.4"/><path d="M50 82l-3.5 8 3.5 8 3.5-8z" fill="#FF5A5F" '+st+' stroke-width="2"/>';
   /* visage */
   let face='<circle cx="25" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="75" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="50" cy="52" r="26" '+fl(sk,3)+'/>';
+  if(isAnimal(a)){const an=animalSVG(a.animal,a.fur||ANDEF[a.animal],fl,ln,st);hb=an[0]+hb;face=an[1]+an[2]}
   /* détails */
   let ex='';
   if(a.extra==='blush')ex='<ellipse cx="32" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/><ellipse cx="68" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/>';
@@ -580,7 +639,8 @@ function avatar(a,size){
 }
 function randomAvatar(){
   const r=()=>Math.random();
-  return {bg:pick(BGS),pat:r()<.35?pick(PATS)[0]:'none',skin:pick(SKINS.slice(0,6)),
+  const an=r()<.45?pick(ANIMALS.slice(1))[0]:'human';
+  return {animal:an,bg:pick(BGS),pat:r()<.35?pick(PATS)[0]:'none',skin:pick(SKINS.slice(0,6)),
     hair:r()<.85?pick(HAIRS.slice(1))[0]:'none',hairc:pick(HAIRCS),
     eyes:pick(EYES)[0],brows:r()<.6?pick(BROWS.slice(1))[0]:'none',mouth:pick(MOUTHS)[0],
     beard:r()<.15?pick(BEARDS.slice(1))[0]:'none',extra:r()<.4?pick(EXTRAS.slice(1))[0]:'none',
@@ -626,6 +686,7 @@ function loadLocal(){
     const raw=localStorage.getItem(LKEY+':'+myId);
     if(raw){const d=JSON.parse(raw);
       if(d.rate)S.rate=d.rate;
+      if(d.piper)S.piper=true;
       if(d.reminders)reminders=d.reminders;
       if(d.follows)follows=d.follows;
       if(d.readModes)readModes=d.readModes;
@@ -637,7 +698,7 @@ let sentProf='',profT=0;
 function save(){
   if(!myId)return;
   convs.forEach(c=>{readModes[c.id]=c.readMode});
-  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen}))}catch(e){}
+  try{localStorage.setItem(LKEY+':'+myId,JSON.stringify({piper:!!S.piper,rate:S.rate,reminders:reminders,follows:follows,readModes:readModes,aiSeen:me.aiSeen}))}catch(e){}
   const p=profOf(),j=JSON.stringify(p);
   if(j!==sentProf){
     clearTimeout(profT);
@@ -652,7 +713,7 @@ const meName=()=>(me.name||'').trim()||'Moi';
 function pitchOf(v){return vinfo(v).p}
 const genderOf=v=>vinfo(v).g;
 function userOf(id){
-  if(id==='me')return {name:meName(),handle:'@'+(me.handle||slug(me.name)),a:me.a,pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
+  if(id==='me')return {name:meName(),handle:'@'+(me.handle||slug(me.name)),a:me.a,pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice};
   return U[id]||UNK;
 }
 const nameOf=id=>userOf(id).name;
@@ -703,7 +764,7 @@ function rpcReact(m,e){
 /* ---------- Conversion lignes → objets de l'app ---------- */
 function profToU(p){
   const av=p.avatar&&p.avatar.bg?p.avatar:UNK.a;
-  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(p.voice),gender:genderOf(p.voice),roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
+  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(p.voice),gender:genderOf(p.voice),voice:p.voice,roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
 }
 async function ensureProfiles(ids,force){
   const need=Array.from(new Set(ids)).filter(i=>i&&i!==myId&&(force||!U[i]));
@@ -917,7 +978,25 @@ const VOICES=[
   {id:'normale',label:'Neutre',g:null,p:1},
   {id:'aigue',label:'Neutre aiguë',g:null,p:1.35}
 ];
-const vinfo=id=>VOICES.filter(v=>v.id===id)[0]||VOICES[4];
+const PIPER=[
+  {id:'pi_siwis_low',label:'Piper · Femme légère',g:'f',model:'fr_FR-siwis-low',mb:28},
+  {id:'pi_siwis',label:'Piper · Femme claire',g:'f',model:'fr_FR-siwis-medium',mb:63},
+  {id:'pi_upmc',label:'Piper · Femme chaleureuse',g:'f',model:'fr_FR-upmc-medium',mb:77},
+  {id:'pi_tom',label:'Piper · Homme',g:'m',model:'fr_FR-tom-medium',mb:64},
+  {id:'pi_gilles',label:'Piper · Homme posé',g:'m',model:'fr_FR-gilles-low',mb:63}
+];
+/* id de voix = base[~effet] (ex. "pi_tom~monstre") : l'effet ne change que le son, jamais les mots */
+function splitVoice(id){
+  const p=String(id||'').split('~'),b=PIPER.filter(x=>x.id===p[0])[0]||null;
+  const fun=p[1]?FUN.filter(f=>f.id===p[1])[0]||null:null;
+  return {id0:p[0],piper:b,fun:fun};
+}
+function vinfo(id){
+  const s=splitVoice(id);
+  const b=s.piper?{g:s.piper.g,p:1}:(VOICES.filter(v=>v.id===s.id0)[0]||VOICES[4]);
+  if(s.fun)return {id:id,g:s.fun.tts.gender||b.g,p:s.fun.tts.pitch};
+  return {id:id,g:b.g,p:b.p};
+}
 function spoken(t){const s=String(t).replace(/[\u{1F000}-\u{1FFFF}☀-➿️]/gu,'').replace(/\s+/g,' ').trim();return s||String(t)}
 let np=null;
 function paintKey(key){
@@ -1019,7 +1098,8 @@ async function startAudio(key,src,o){
   try{await a.play()}catch(e){if(np===st){stopPlay();toast("Lecture du vocal impossible.")}}
 }
 function playSpec(key,sp,after){
-  const fun=sp.fx?FUN.filter(f=>f.id===sp.fx)[0]:null;
+  const sv=splitVoice(sp.voice);
+  const fun=sp.fx?FUN.filter(f=>f.id===sp.fx)[0]:sv.fun;
   if(fun)getCtx();
   if(sp.audio){
     const go=src=>{startAudio(key,src,{dur:sp.dur,after:after,fx:sp.fx})};
@@ -1030,13 +1110,78 @@ function playSpec(key,sp,after){
     });
     return;
   }
+  const wantPiper=sv.piper||fun;
+  if(wantPiper&&S.piper&&piperSupported()&&sp.text&&String(sp.text).trim()){
+    const base=sv.piper||PIPER.filter(x=>x.id===((fun&&fun.tts.gender||sp.gender)==='m'?'pi_tom':'pi_siwis_low'))[0];
+    piperSpeak(key,sp,base,fun,after);
+    return;
+  }
+  if(sv.piper&&!S.piper&&!piperHinted){piperHinted=true;toast("Active les voix Piper dans ton profil pour entendre la voix choisie.")}
   if(fun){
-    startPlay(key,{text:sp.text,pitch:fun.tts.pitch,rateMul:fun.tts.rate,gender:fun.tts.gender||sp.gender,after:after});
+    startPlay(key,{text:sp.text,pitch:fun.tts.pitch,rateMul:fun.tts.rate,gender:fun.tts.gender||sv.piper&&sv.piper.g||sp.gender,after:after});
     return;
   }
   startPlay(key,Object.assign({after:after},sp));
 }
 
+
+/* ---------- Piper : voix neuronales dans le navigateur (gratuit, MIT) ---------- */
+let piperMod=null,piperLoad=null,piperSess=null,piperBusy=Promise.resolve(),piperHinted=false;
+const PCACHE={},PKEYS=[];
+function piperSupported(){return !!(window.WebAssembly&&window.Worker!==undefined&&navigator.storage&&navigator.storage.getDirectory)}
+function loadPiper(){
+  if(piperMod)return Promise.resolve(piperMod);
+  if(!piperLoad)piperLoad=import('./piper.js').then(m=>{piperMod=m;return m}).catch(e=>{piperLoad=null;throw e});
+  return piperLoad;
+}
+function piperProgress(p,voice){
+  if(!p||!p.total)return;
+  if(p.url==='tts://inference-progress'){toast('Je prépare la voix… '+p.loaded+'/'+p.total);return}
+  toast('Téléchargement de la voix, une seule fois… '+Math.min(100,Math.round(p.loaded/p.total*100))+' % (≈'+voice.mb+' Mo)');
+}
+/* une seule session à la fois en mémoire ; la bibliothèque garde un singleton, on le remet à zéro quand la voix change */
+async function piperSession(voice){
+  const m=await loadPiper();
+  if(piperSess&&piperSess.model===voice.model)return piperSess.s;
+  piperSess=null;
+  try{m.TtsSession._instance=null}catch(e){}
+  const s=new m.TtsSession({voiceId:voice.model,progress:p=>piperProgress(p,voice)});
+  try{await s.waitReady}catch(e){try{m.TtsSession._instance=null}catch(_){}throw e}
+  piperSess={model:voice.model,s:s};
+  return s;
+}
+function piperUrl(voice,text){
+  const k=voice.model+'|'+text;
+  if(PCACHE[k])return Promise.resolve(PCACHE[k]);
+  const job=piperBusy.then(async()=>{
+    if(PCACHE[k])return PCACHE[k];
+    const s=await piperSession(voice);
+    try{s.progressCb}catch(e){}
+    const blob=await s.predict(text);
+    const u=URL.createObjectURL(blob);
+    PCACHE[k]=u;PKEYS.push(k);
+    while(PKEYS.length>24){const o=PKEYS.shift();try{URL.revokeObjectURL(PCACHE[o])}catch(e){}delete PCACHE[o]}
+    return u;
+  });
+  piperBusy=job.catch(()=>{});
+  return job;
+}
+async function piperSpeak(key,sp,voice,fun,after){
+  stopPlay();
+  const st={key:key,prog:0,loading:true,timer:0,audio:null,after:after||null};
+  np=st;paintKey(key);
+  const txt=spoken(sp.text);
+  try{
+    const url=await piperUrl(voice,txt);
+    if(np!==st)return;
+    startAudio(key,url,{fx:fun?fun.id:null,after:after,dur:0});
+  }catch(e){
+    if(np!==st)return;
+    np=null;paintKey(key);
+    toast("Voix Piper indisponible (connexion ?). Voix de l'appareil à la place.");
+    startPlay(key,{text:sp.text,pitch:fun?fun.tts.pitch:sp.pitch,rateMul:fun?fun.tts.rate:1,gender:fun&&fun.tts.gender||voice.g,after:after});
+  }
+}
 
 /* ---------- Voix fun (effets sur les vrais vocaux, style sur les textes lus) ---------- */
 const FUN=[
@@ -1955,21 +2100,23 @@ function publish(type){
 }
 
 /* ---------- Profil ---------- */
-const AVDEF={pat:'none',hair:'none',hairc:'#2B1B14',brows:'none',beard:'none',extra:'none',acc:'none',fit:'tee',out:'#FFFFFF'};
+const AVDEF={animal:'human',pat:'none',hair:'none',hairc:'#2B1B14',brows:'none',beard:'none',extra:'none',acc:'none',fit:'tee',out:'#FFFFFF'};
 let AVT='hair';
 function opt(k,v,label,inner){
-  const cur=me.a[k]||AVDEF[k];
+  const cur=me.a[k]||(k==='fur'?ANDEF[me.a.animal]:AVDEF[k]);
   return '<button class="opt" data-act="av" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'" aria-label="'+label+'">'+inner+'</button>';
 }
 function avEditorHTML(){
-  const cat=AVCATS.filter(c=>c.k===AVT)[0]||AVCATS[0];
+  const an=isAnimal(me.a),cats=AVCATS.filter(c=>!c.only||(c.only==='animal')===an);
+  const cat=cats.filter(c=>c.k===AVT)[0]||cats[0];
   const grid=cat.vals?cat.vals.map(v=>opt(cat.k,v,cat.label+' '+v,'<span class="dot" style="background:'+v+'"></span>')).join(''):cat.opts.map(x=>{const o={};o[cat.k]=x[0];return opt(cat.k,x[0],x[1],avatar(Object.assign({},me.a,o),54))}).join('');
-  return '<div class="chips avtabs" role="tablist">'+AVCATS.map(c=>'<button class="chip" data-act="avtab" data-k="'+c.k+'" aria-pressed="'+(c.k===cat.k)+'">'+c.label+'</button>').join('')+'</div><div class="opts">'+grid+'</div>';
+  return '<div class="chips avtabs" role="tablist">'+cats.map(c=>'<button class="chip" data-act="avtab" data-k="'+c.k+'" aria-pressed="'+(c.k===cat.k)+'">'+c.label+'</button>').join('')+'</div><div class="opts">'+grid+'</div>';
 }
 function sw(k,label,sub){
   return '<div class="srow"><div><b>'+label+'</b>'+(sub?'<p class="small">'+sub+'</p>':'')+'</div><button class="sw" role="switch" aria-checked="'+(!!me[k])+'" aria-label="'+label+'" data-act="tog" data-k="'+k+'"><i></i></button></div>';
 }
 function renderMe(){
+  const sv=splitVoice(me.voice);
   const mineP=posts.filter(p=>p.u==='me');
   const u=userOf('me'),mineC=convs.reduce((n,c)=>n+c.msgs.filter(m=>m.f==='me'&&m.k!=='sys').length,0);
   const rx=mineP.reduce((n,p)=>n+Object.keys(p.rx).reduce((m,e)=>m+p.rx[e],0),0);
@@ -1979,7 +2126,10 @@ function renderMe(){
     '<div class="stats"><span><b>'+mineC+'</b> messages</span><span><b>'+mineP.length+'</b> publication'+(mineP.length>1?'s':'')+'</span><span><b>'+rx+'</b> réaction'+(rx>1?'s':'')+'</span></div></div>';
   h+='<div class="stage left"><h2 class="h3">Ton avatar</h2><button class="btn ghost" data-act="avrand">'+ico('wand',18)+'Surprends-moi</button><div id="aved">'+avEditorHTML()+'</div></div>';
   h+='<div class="stage left">'+
-    '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix.</p><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(me.voice===x.id)+'">'+x.label+'</button>').join('')+'</div>'+
+    '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix. Les effets ne changent que le son : les mots restent les tiens.</p>'+
+    '<div class="lbl" style="margin-top:6px">Voix</div><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+'</button>').join('')+PIPER.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+' · '+x.mb+' Mo</button>').join('')+'</div>'+
+    '<div class="lbl" style="margin-top:6px">Effet drôle</div><div class="chips"><button class="chip" data-act="vfun" data-v="" aria-pressed="'+(!sv.fun)+'">Aucun</button>'+FUN.map(f=>'<button class="chip" data-act="vfun" data-v="'+f.id+'" aria-pressed="'+(!!sv.fun&&sv.fun.id===f.id)+'">'+f.e+' '+f.label+'</button>').join('')+'</div>'+
+    '<div class="srow"><div><b>Voix réalistes Piper</b><p class="small">Gratuites, calculées sur ton téléphone. Téléchargement unique de 28 à 77 Mo par voix (mieux en Wi-Fi). Nécessaire aussi pour entendre les voix Piper de tes amis.</p></div><button class="sw" role="switch" aria-checked="'+(!!S.piper)+'" aria-label="Voix Piper" data-act="piperTog"><i></i></button></div>'+
     '<div data-key="v:test"><button class="btn ghost plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter ma voix</span></button></div></div></div>';
   h+='<div class="stage left"><h2 class="h3">IA, roasts et sécurité</h2>'+
     sw('aiOn','Fonctions IA','Résumés, roasts, tribunal… La conversation concernée est envoyée à Claude, seulement quand tu lances une fonction.')+
@@ -2014,14 +2164,14 @@ A.play=t=>{
 };
 function speechFor(key){
   const p=key.split(':'),k=p[0],a=p[1],b=p[2];
-  if(k==='p'){const po=feedPost(a),u=userOf(po.u);return {text:po.text,pitch:u.pitch,gender:u.gender,audio:po.type==='voice'?(po.localAudio||po.audio):null,dur:po.dur}}
-  if(k==='c'){const pc=feedPost(a),c=pc.cm[+b],u=userOf(c.u);return {text:c.text,pitch:u.pitch,gender:u.gender}}
-  if(k==='m'){const c=conv(a),m=c.msgs.find(x=>x.id===b),u=userOf(m.f);return {text:m.text,pitch:u.pitch,gender:u.gender,audio:m.k==='voice'?(m.localAudio||m.audio):null,dur:m.dur}}
-  if(k==='n'){const c=conv(a),m=c.msgs.find(x=>x.id===b),kind=p[3],d=m[kind];return {text:d.text,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender,lang:kind==='tr'?(LANGS.find(l=>l[0]===d.lang)||[0,'fr-FR'])[1]:'fr-FR'}}
+  if(k==='p'){const po=feedPost(a),u=userOf(po.u);return {text:po.text,pitch:u.pitch,gender:u.gender,voice:u.voice,audio:po.type==='voice'?(po.localAudio||po.audio):null,dur:po.dur}}
+  if(k==='c'){const pc=feedPost(a),c=pc.cm[+b],u=userOf(c.u);return {text:c.text,pitch:u.pitch,gender:u.gender,voice:u.voice}}
+  if(k==='m'){const c=conv(a),m=c.msgs.find(x=>x.id===b),u=userOf(m.f);return {text:m.text,pitch:u.pitch,gender:u.gender,voice:u.voice,audio:m.k==='voice'?(m.localAudio||m.audio):null,dur:m.dur}}
+  if(k==='n'){const c=conv(a),m=c.msgs.find(x=>x.id===b),kind=p[3],d=m[kind];return {text:d.text,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender,voice:userOf(m.f).voice,lang:kind==='tr'?(LANGS.find(l=>l[0]===d.lang)||[0,'fr-FR'])[1]:'fr-FR'}}
   if(k==='r'){return {text:AIR.spec.speak(AIR.data),pitch:AIR.spec.pitch||1,rateMul:AIR.spec.rateMul||1}}
-  if(k==='d'&&a==='v')return {text:draft?draft.text:'',pitch:pitchOf(me.voice),gender:genderOf(me.voice),audio:draft&&draft.url,dur:draft&&draft.dur};
-  if(k==='d'&&a==='t')return {text:draftT,pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
-  return {text:"Salut, je suis ta voix de lecture. Je lis tes textes à voix haute.",pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
+  if(k==='d'&&a==='v')return {text:draft?draft.text:'',pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice,audio:draft&&draft.url,dur:draft&&draft.dur};
+  if(k==='d'&&a==='t')return {text:draftT,pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice};
+  return {text:"Salut, je suis ta voix de lecture. Je lis tes textes à voix haute.",pitch:pitchOf(me.voice),gender:genderOf(me.voice),voice:me.voice};
 }
 
 /* Discussions */
@@ -2209,13 +2359,21 @@ A.ins=t=>{
 };
 
 /* Profil */
-A.av=t=>{me.a[t.dataset.k]=t.dataset.v;save();keepScroll(renderMe)};
+A.av=t=>{me.a[t.dataset.k]=t.dataset.v;if(t.dataset.k==='animal')delete me.a.fur;save();keepScroll(renderMe)};
 A.avtab=t=>{AVT=t.dataset.k;keepScroll(renderMe)};
 A.avrand=()=>{me.a=randomAvatar();save();keepScroll(renderMe)};
-A.voice=t=>{
-  me.voice=t.dataset.v;save();
-  document.querySelectorAll('[data-act="voice"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===me.voice)));
-  startPlay('v:test',{text:"Salut, je suis ta voix de lecture. Je lis tes textes à voix haute.",pitch:pitchOf(me.voice),gender:genderOf(me.voice)});
+function setVoice(base,fun){
+  me.voice=base+(fun?'~'+fun:'');
+  if(PIPER.some(x=>x.id===base)&&!S.piper&&piperSupported())S.piper=true;
+  save();keepScroll(renderMe);
+  playSpec('v:test',speechFor('v:test'));
+}
+A.voice=t=>{const sv=splitVoice(me.voice);setVoice(t.dataset.v,sv.fun&&sv.fun.id)};
+A.vfun=t=>{const sv=splitVoice(me.voice);setVoice(sv.id0,t.dataset.v||null)};
+A.piperTog=()=>{
+  if(!piperSupported()){toast("Ton navigateur ne gère pas les voix Piper.");return}
+  S.piper=!S.piper;save();keepScroll(renderMe);
+  if(S.piper)toast("Piper activé. Le téléchargement se fait à la première écoute.");
 };
 A.tog=t=>{
   const k=t.dataset.k;me[k]=!me[k];
