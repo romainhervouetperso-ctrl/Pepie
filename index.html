@@ -322,6 +322,17 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .pop{position:absolute;font-size:24px;line-height:1;animation:pop .95s ease-out forwards;opacity:0}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.25);opacity:0}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* Avatars qui parlent + éditeur */
+@keyframes talk{from{transform:scaleY(.5)}to{transform:scaleY(1.35)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-4deg)}}
+.am{transform-box:fill-box;transform-origin:50% 30%}
+.mrow.speaking .am,.post.playing .ph .am{animation:talk .22s ease-in-out infinite alternate}
+.mrow.speaking .mav .av,.post.playing .ph .av{animation:bob .45s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.mrow.speaking .am,.post.playing .ph .am,.mrow.speaking .mav .av,.post.playing .ph .av{animation:none}}
+.avtabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.avtabs .chip{flex:none}
+.opts .opt{width:auto}
 </style>
 
 <div class="app" id="app">
@@ -435,31 +446,146 @@ function ico(n,sz){sz=sz||20;return '<svg class="ic" viewBox="0 0 24 24" width="
 
 /* ---------- Avatars ---------- */
 const INK='#14142B';
+const BGS=['#FFD23F','#34D3A8','#FF5A5F','#5B7CFA','#C9B6FF','#FFB86B','#8FD3FF','#FF8FA0'];
+const SKINS=['#FADDC6','#F6C9A0','#E8B48A','#C98E63','#8D5A3C','#5A3825','#B7E4C7','#C9B6FF'];
+const HAIRCS=['#2B1B14','#14142B','#8D5A3C','#E8B84A','#FF5A5F','#C9B6FF','#34D3A8','#5B7CFA','#BFC3D9','#FFFFFF'];
+const OUTS=['#FFFFFF','#FF5A5F','#5B7CFA','#34D3A8','#FFD23F','#14142B','#C9B6FF'];
+const PATS=[['none','Uni'],['dots','Pois'],['stripes','Rayures'],['rays','Rayons'],['stars','Étoiles']];
+const HAIRS=[['none','Chauve'],['short','Court'],['buzz','Rasé'],['long','Long'],['bob','Carré'],['curly','Bouclé'],['afro','Afro'],['mohawk','Crête'],['bun','Chignon'],['pony','Queue de cheval'],['pigtails','Couettes'],['tuft','Une mèche']];
+const EYES=[['dots','Yeux ronds'],['happy','Yeux rieurs'],['wide','Grands yeux'],['sleepy','Yeux endormis'],['wink','Clin d\'œil'],['hearts','Yeux en cœur'],['stars','Yeux étoilés'],['dizzy','Étourdi'],['anime','Yeux brillants'],['side','Regard en coin']];
+const BROWS=[['none','Sans sourcils'],['normal','Sourcils'],['angry','Fâché'],['surprised','Surpris'],['unibrow','Monosourcil'],['sad','Triste'],['thick','Épais']];
+const MOUTHS=[['smile','Sourire'],['open','Bouche ouverte'],['o','Bouche en O'],['tongue','Langue tirée'],['grin','Grand sourire'],['smirk','Sourire en coin'],['flat','Neutre'],['cat','Moue de chat'],['kiss','Bisou'],['fangs','Crocs'],['shout','Cri']];
+const BEARDS=[['none','Rasé'],['mustache','Moustache'],['goatee','Bouc'],['full','Barbe'],['handle','Moustache en guidon']];
+const EXTRAS=[['none','Aucun'],['blush','Joues roses'],['freckles','Taches de rousseur'],['sweat','Goutte de sueur'],['scar','Cicatrice'],['tear','Larme']];
+const ACCS=[['none','Aucun'],['glasses','Lunettes'],['sunglasses','Lunettes de soleil'],['headphones','Casque'],['crown','Couronne'],['cap','Casquette'],['pirate','Pirate'],['party','Chapeau de fête'],['cowboy','Cowboy'],['flowers','Fleurs'],['bunny','Oreilles de lapin'],['cat','Oreilles de chat'],['devil','Cornes de diable'],['halo','Auréole'],['headband','Bandeau'],['beanie','Bonnet'],['clown','Nez de clown'],['wizard','Chapeau de magicien'],['chef','Toque']];
+const FITS=[['tee','T-shirt'],['hoodie','Sweat'],['stripes','Marinière'],['suit','Costume']];
+const AVCATS=[
+  {k:'bg',label:'Fond',vals:BGS},{k:'pat',label:'Motif',opts:PATS},
+  {k:'skin',label:'Peau',vals:SKINS},
+  {k:'hair',label:'Coiffure',opts:HAIRS},{k:'hairc',label:'Couleur',vals:HAIRCS},
+  {k:'eyes',label:'Yeux',opts:EYES},{k:'brows',label:'Sourcils',opts:BROWS},
+  {k:'mouth',label:'Bouche',opts:MOUTHS},{k:'beard',label:'Barbe',opts:BEARDS},
+  {k:'extra',label:'Détails',opts:EXTRAS},{k:'acc',label:'Accessoire',opts:ACCS},
+  {k:'fit',label:'Tenue',opts:FITS},{k:'out',label:'Couleur tenue',vals:OUTS}
+];
+const AVKEYS=AVCATS.map(c=>c.k);
 function avatar(a,size){
-  const s=a.skin,st='stroke="'+INK+'" stroke-linecap="round" stroke-linejoin="round"';
-  let e='',m='',x='';
-  if(a.eyes==='dots')e='<circle cx="41" cy="50" r="3" fill="'+INK+'"/><circle cx="59" cy="50" r="3" fill="'+INK+'"/>';
-  if(a.eyes==='happy')e='<path d="M36.5 51q4.5-7 9 0M54.5 51q4.5-7 9 0" fill="none" stroke-width="3" '+st+'/>';
-  if(a.eyes==='wide')e='<circle cx="41" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="59" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="42.2" cy="50.6" r="2.4" fill="'+INK+'"/><circle cx="57.8" cy="50.6" r="2.4" fill="'+INK+'"/>';
-  if(a.eyes==='sleepy')e='<path d="M36 51h9M55 51h9" fill="none" stroke-width="3" '+st+'/>';
-  if(a.mouth==='smile')m='<path d="M41 60q9 10 18 0" fill="none" stroke-width="3" '+st+'/>';
-  if(a.mouth==='open')m='<path d="M42 59h16q0 12-8 12t-8-12z" fill="'+INK+'" '+st+' stroke-width="2"/>';
-  if(a.mouth==='o')m='<ellipse cx="50" cy="64" rx="4" ry="5" fill="'+INK+'"/>';
-  if(a.mouth==='tongue')m='<path d="M41 60q9 10 18 0" fill="none" stroke-width="3" '+st+'/><path d="M46 65.5q4 9 8 0z" fill="#FF8FA0" stroke-width="2" '+st+'/>';
-  if(a.acc==='glasses')x='<g fill="none" stroke-width="2.6" '+st+'><circle cx="41" cy="50" r="8.5"/><circle cx="59" cy="50" r="8.5"/><path d="M49.5 50h1"/></g>';
-  if(a.acc==='headphones')x='<path d="M21 52a29 29 0 0 1 58 0" fill="none" stroke-width="5" '+st+'/><rect x="15" y="46" width="11" height="18" rx="5" fill="#FF5A5F" stroke-width="2.5" '+st+'/><rect x="74" y="46" width="11" height="18" rx="5" fill="#FF5A5F" stroke-width="2.5" '+st+'/>';
-  if(a.acc==='crown')x='<path d="M34 30l2-14 8 8 6-11 6 11 8-8 2 14z" fill="#FFD23F" stroke-width="2.5" '+st+'/>';
-  if(a.acc==='cap')x='<path d="M27 40a23 23 0 0 1 46 0z" fill="#5B7CFA" stroke-width="2.8" '+st+'/><path d="M62 40h22" fill="none" stroke-width="5" '+st+'/>';
-  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="'+a.bg+'"/>'+
-    '<path d="M10 106c2-20 16-30 40-30s38 10 40 30z" fill="#fff" stroke-width="3" '+st+'/>'+
-    '<circle cx="50" cy="52" r="26" fill="'+s+'" stroke-width="3" '+st+'/>'+e+m+x+'</svg>';
+  const st='stroke="'+INK+'" stroke-linecap="round" stroke-linejoin="round"',hc=a.hairc||'#2B1B14',hair=a.hair||'none';
+  const sk=a.skin||'#F6C9A0',out=a.out||'#FFFFFF',fit=a.fit||'tee';
+  const fl=(f,w)=>'fill="'+f+'" stroke-width="'+(w||2.4)+'" '+st,ln=w=>'fill="none" stroke-width="'+(w||3)+'" '+st;
+  /* motif de fond */
+  let pat='';
+  if(a.pat==='dots')for(let y=14;y<100;y+=22)for(let x=(y%44?14:25);x<100;x+=22)pat+='<circle cx="'+x+'" cy="'+y+'" r="4" fill="#fff" opacity=".35"/>';
+  if(a.pat==='stripes')for(let x=-20;x<110;x+=16)pat+='<path d="M'+x+' 100L'+(x+40)+' 0" stroke="#fff" stroke-width="7" opacity=".28"/>';
+  if(a.pat==='rays')for(let i=0;i<12;i++){const t=i*Math.PI/6;pat+='<path d="M50 50L'+(50+80*Math.cos(t)).toFixed(1)+' '+(50+80*Math.sin(t)).toFixed(1)+'L'+(50+80*Math.cos(t+.26)).toFixed(1)+' '+(50+80*Math.sin(t+.26)).toFixed(1)+'z" fill="#fff" opacity=".3"/>'}
+  if(a.pat==='stars')[[16,20],[84,26],[12,70],[88,66],[50,8]].forEach(p=>{pat+='<path transform="translate('+p[0]+' '+p[1]+') scale(.9)" d="M0-6l1.8 3.9 4.2.5-3.1 2.8.9 4.2L0 3l-3.8 2.4.9-4.2L-6 -1.6l4.2-.5z" fill="#fff" opacity=".7"/>'});
+  /* cheveux derrière */
+  let hb='',hf='';
+  if(hair==='long')hb='<path d="M22 52C14 18 36 10 50 10s36 8 28 42c0 14 4 26 8 36H14c4-10 8-22 8-36z" '+fl(hc)+'/>';
+  if(hair==='bob')hb='<path d="M21 60C12 20 34 12 50 12s38 8 29 48c-1 8-4 12-8 12H29c-4 0-7-4-8-12z" '+fl(hc)+'/>';
+  if(hair==='afro')hb='<circle cx="50" cy="38" r="31" '+fl(hc)+'/><circle cx="25" cy="48" r="13" '+fl(hc)+'/><circle cx="75" cy="48" r="13" '+fl(hc)+'/>';
+  if(hair==='pony')hb='<path d="M70 34c18 0 22 20 14 40-3-12-8-20-16-24z" '+fl(hc)+'/>';
+  if(hair==='pigtails')hb='<circle cx="19" cy="50" r="11" '+fl(hc)+'/><circle cx="81" cy="50" r="11" '+fl(hc)+'/>';
+  /* cheveux devant */
+  if(hair==='short'||hair==='pony')hf='<path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fl(hc)+'/>';
+  if(hair==='buzz')hf='<path d="M26 42C26 28 38 23 50 23s24 5 24 19c-6-8-14-11-24-11s-18 3-24 11z" '+fl(hc)+'/>';
+  if(hair==='long'||hair==='bob'||hair==='pigtails')hf='<path d="M24 50C21 26 36 20 50 20s29 6 26 30c-5-8-10-14-18-16-6 8-18 14-34 16z" '+fl(hc)+'/>';
+  if(hair==='afro')hf='<path d="M26 44C26 30 38 25 50 25s24 5 24 19c-8-6-16-8-24-8s-16 2-24 8z" '+fl(hc)+'/>';
+  if(hair==='curly')[[30,34],[40,27],[50,25],[60,27],[70,34],[26,44],[74,44]].forEach(p=>{hf+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="9" '+fl(hc)+'/>'});
+  if(hair==='mohawk')hf='<path d="M41 30L43 4l7 14 7-14 2 26z" '+fl(hc)+'/>';
+  if(hair==='bun')hf='<circle cx="50" cy="14" r="10" '+fl(hc)+'/><path d="M24 48C20 26 34 18 50 18s30 8 26 30c-3-9-7-14-13-16-9 5-25 5-33 0-3 3-5 8-6 16z" '+fl(hc)+'/>';
+  if(hair==='tuft')hf='<path d="M50 27q-8-14 2-16M50 27q6-12 14-8" '+ln(3.5).replace(INK,hc)+'/><path d="M50 27q-8-14 2-16M50 27q6-12 14-8" '+ln(1.2)+'/>';
+  /* tenue */
+  const sh='M10 106c2-20 16-30 40-30s38 10 40 30z';
+  let body='<clipPath id="avs"><path d="'+sh+'"/></clipPath><path d="'+sh+'" '+fl(out,3)+'/><g clip-path="url(#avs)">';
+  const light=out==='#FFFFFF'||out==='#FFD23F'||out==='#C9B6FF';
+  if(fit==='stripes')for(let y=80;y<100;y+=7)body+='<path d="M0 '+y+'h100" stroke="'+(out==='#14142B'?'#fff':INK)+'" stroke-width="3" opacity=".8"/>';
+  body+='</g>';
+  if(fit==='tee')body+='<path d="M38 77q12 11 24 0" '+ln(2.6)+'/>';
+  if(fit==='hoodie')body+='<path d="M34 77q16 14 32 0" '+ln(3.5)+'/><path d="M45 85v9M55 85v9" '+ln(2.5)+'/>';
+  if(fit==='suit')body+='<path d="M40 77l10 13 10-13z" fill="#fff" '+st+' stroke-width="2.4"/><path d="M50 82l-3.5 8 3.5 8 3.5-8z" fill="#FF5A5F" '+st+' stroke-width="2"/>';
+  /* visage */
+  let face='<circle cx="25" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="75" cy="54" r="5" '+fl(sk,2.4)+'/><circle cx="50" cy="52" r="26" '+fl(sk,3)+'/>';
+  /* détails */
+  let ex='';
+  if(a.extra==='blush')ex='<ellipse cx="32" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/><ellipse cx="68" cy="61" rx="5.5" ry="3.4" fill="#FF8FA0" opacity=".75"/>';
+  if(a.extra==='freckles')[[38,58],[42,61],[34,61],[62,58],[58,61],[66,61]].forEach(p=>{ex+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="1.2" fill="'+INK+'" opacity=".55"/>'});
+  if(a.extra==='sweat')ex='<path d="M74 30q6 8 0 12q-6-4 0-12z" fill="#8FD3FF" '+st+' stroke-width="2"/>';
+  if(a.extra==='scar')ex='<path d="M66 42l8 11M65 50l5-4M69 46l-4 6" '+ln(2.2)+' stroke="#B23A48"/>';
+  if(a.extra==='tear')ex='<path d="M41 57q-4 6 0 9q4-3 0-9z" fill="#8FD3FF" '+st+' stroke-width="1.8"/>';
+  /* sourcils */
+  let br='';
+  if(a.brows==='normal')br='<path d="M35 41q5-3 10 0M55 41q5-3 10 0" '+ln(2.8)+'/>';
+  if(a.brows==='angry')br='<path d="M34 38l11 5M66 38l-11 5" '+ln(3.4)+'/>';
+  if(a.brows==='surprised')br='<path d="M35 38q5-6 10 0M55 38q5-6 10 0" '+ln(2.8)+'/>';
+  if(a.brows==='unibrow')br='<path d="M34 41q16-7 32 0" '+ln(4)+'/>';
+  if(a.brows==='sad')br='<path d="M34 42l11-4M66 42l-11-4" '+ln(3)+'/>';
+  if(a.brows==='thick')br='<path d="M34 41l11-1M55 40l11 1" '+ln(5)+'/>';
+  /* yeux */
+  const E=a.eyes||'dots',heart=(x,y)=>'<path transform="translate('+x+' '+y+') scale(.62)" d="M0 9C-11 1-11-9-4-9c3 0 4 2 4 3 0-1 1-3 4-3 7 0 7 10-4 18z" fill="#FF5A5F" '+st+' stroke-width="2.6"/>';
+  const star=(x,y)=>'<path transform="translate('+x+' '+y+') scale(.85)" d="M0-8l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L0 4l-5 2.8 1.2-5.6-4.2-3.8 5.6-.6z" fill="#FFD23F" '+st+' stroke-width="2"/>';
+  let e='';
+  if(E==='dots')e='<circle cx="41" cy="50" r="3" fill="'+INK+'"/><circle cx="59" cy="50" r="3" fill="'+INK+'"/>';
+  if(E==='happy')e='<path d="M36.5 51q4.5-7 9 0M54.5 51q4.5-7 9 0" '+ln(3)+'/>';
+  if(E==='wide')e='<circle cx="41" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="59" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="42.2" cy="50.6" r="2.4" fill="'+INK+'"/><circle cx="57.8" cy="50.6" r="2.4" fill="'+INK+'"/>';
+  if(E==='sleepy')e='<path d="M36 51h9M55 51h9" '+ln(3)+'/>';
+  if(E==='wink')e='<path d="M36.5 51q4.5-7 9 0" '+ln(3)+'/><circle cx="59" cy="50" r="3.2" fill="'+INK+'"/>';
+  if(E==='hearts')e=heart(41,50)+heart(59,50);
+  if(E==='stars')e=star(41,50)+star(59,50);
+  if(E==='dizzy')e='<path d="M37 46l8 8M45 46l-8 8M55 46l8 8M63 46l-8 8" '+ln(2.6)+'/>';
+  if(E==='anime')e='<ellipse cx="41" cy="50" rx="5.5" ry="7" fill="'+INK+'"/><ellipse cx="59" cy="50" rx="5.5" ry="7" fill="'+INK+'"/><circle cx="39.2" cy="47" r="2.2" fill="#fff"/><circle cx="57.2" cy="47" r="2.2" fill="#fff"/><circle cx="43" cy="53" r="1.1" fill="#fff"/><circle cx="61" cy="53" r="1.1" fill="#fff"/>';
+  if(E==='side')e='<circle cx="41" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="59" cy="50" r="5.5" fill="#fff" stroke-width="2" '+st+'/><circle cx="43.4" cy="50.4" r="2.6" fill="'+INK+'"/><circle cx="61.4" cy="50.4" r="2.6" fill="'+INK+'"/>';
+  /* barbe */
+  let bd='';
+  if(a.beard==='full')bd='<path d="M25 58c0 20 12 24 25 24s25-4 25-24c-4 8-12 10-25 10s-21-2-25-10z" '+fl(hc)+'/>';
+  if(a.beard==='goatee')bd='<path d="M43 69q7 12 14 0z" '+fl(hc)+'/>';
+  if(a.beard==='mustache'||a.beard==='handle'||a.beard==='full')bd+='<path d="M37 61q6-6 13-2 7-4 13 2-6 7-13 3-7 4-13-3z" '+fl(hc,2.2)+'/>';
+  if(a.beard==='handle')bd+='<path d="M37 61q-5-1-4-6M63 61q5-1 4-6" '+ln(2.4)+'/>';
+  /* bouche */
+  const M=a.mouth||'smile';
+  let m='';
+  if(M==='smile')m='<path d="M41 60q9 10 18 0" '+ln(3)+'/>';
+  if(M==='open')m='<path d="M42 59h16q0 12-8 12t-8-12z" fill="'+INK+'" '+st+' stroke-width="2"/>';
+  if(M==='o')m='<ellipse cx="50" cy="64" rx="4" ry="5" fill="'+INK+'"/>';
+  if(M==='tongue')m='<path d="M41 60q9 10 18 0" '+ln(3)+'/><path d="M46 65.5q4 9 8 0z" fill="#FF8FA0" stroke-width="2" '+st+'/>';
+  if(M==='grin')m='<path d="M40 59h20q0 12-10 12t-10-12z" fill="#fff" '+st+' stroke-width="2.4"/><path d="M40 64h20M50 59v12" '+ln(1.6)+'/>';
+  if(M==='smirk')m='<path d="M42 64q8 3 17-4" '+ln(3)+'/>';
+  if(M==='flat')m='<path d="M42 65h16" '+ln(3)+'/>';
+  if(M==='cat')m='<path d="M40 62q5 5 10 0q5 5 10 0" '+ln(2.8)+'/>';
+  if(M==='kiss')m='<path d="M45 63q5-6 10 0q-5 7-10 0z" fill="#FF5A5F" '+st+' stroke-width="2"/>';
+  if(M==='fangs')m='<path d="M41 60q9 10 18 0" '+ln(3)+'/><path d="M44 62l2.2 6 2.6-5zM56 62l-2.2 6-2.6-5z" fill="#fff" '+st+' stroke-width="1.6"/>';
+  if(M==='shout')m='<path d="M40 58h20q2 16-10 16t-10-16z" fill="'+INK+'" '+st+' stroke-width="2"/><path d="M44 69q6-4 12 0q-2 4-6 4t-6-4z" fill="#FF8FA0"/>';
+  /* accessoires */
+  const A=a.acc||'none';
+  let x='';
+  if(A==='glasses')x='<g '+ln(2.6)+'><circle cx="41" cy="50" r="8.5"/><circle cx="59" cy="50" r="8.5"/><path d="M49.5 50h1"/></g>';
+  if(A==='sunglasses')x='<rect x="30" y="43" width="18" height="12" rx="5" fill="'+INK+'"/><rect x="52" y="43" width="18" height="12" rx="5" fill="'+INK+'"/><path d="M48 47h4M30 46l-5-2M70 46l5-2" '+ln(2.4)+'/><path d="M34 46l4 0" stroke="#fff" stroke-width="2" opacity=".6" stroke-linecap="round"/>';
+  if(A==='headphones')x='<path d="M21 52a29 29 0 0 1 58 0" '+ln(5)+'/><rect x="15" y="46" width="11" height="18" rx="5" fill="#FF5A5F" stroke-width="2.5" '+st+'/><rect x="74" y="46" width="11" height="18" rx="5" fill="#FF5A5F" stroke-width="2.5" '+st+'/>';
+  if(A==='crown')x='<path d="M34 30l2-14 8 8 6-11 6 11 8-8 2 14z" fill="#FFD23F" stroke-width="2.5" '+st+'/>';
+  if(A==='cap')x='<path d="M27 40a23 23 0 0 1 46 0z" fill="#5B7CFA" stroke-width="2.8" '+st+'/><path d="M62 40h22" '+ln(5)+'/>';
+  if(A==='pirate')x='<path d="M24 38C26 20 74 20 76 38q-26-9-52 0z" fill="#FF5A5F" stroke-width="2.6" '+st+'/><path d="M74 36l11 4-5 7z" fill="#FF5A5F" stroke-width="2.2" '+st+'/><ellipse cx="59" cy="50" rx="7.5" ry="6.5" fill="'+INK+'"/><path d="M26 41L52 47M66 47L74 41" '+ln(2)+'/>';
+  if(A==='party')x='<path d="M50 3L34 32h32z" fill="#FF8FA0" stroke-width="2.6" '+st+'/><path d="M40 20h20M44 12h12" '+ln(2)+' stroke="#fff"/><circle cx="50" cy="4" r="3.4" fill="#FFD23F" '+st+' stroke-width="2"/>';
+  if(A==='cowboy')x='<path d="M32 36q0-18 18-18t18 18z" fill="#A9703B" stroke-width="2.6" '+st+'/><path d="M16 38q34-14 68 0-8 7-34 7t-34-7z" fill="#A9703B" stroke-width="2.6" '+st+'/><path d="M33 33q17 4 34 0" '+ln(2.4)+' stroke="#6E4520"/>';
+  if(A==='flowers')[[30,32,'#FF8FA0'],[41,24,'#FFD23F'],[53,22,'#C9B6FF'],[65,27,'#FF8FA0'],[72,38,'#8FD3FF']].forEach(p=>{x+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="5.5" fill="'+p[2]+'" '+st+' stroke-width="2"/><circle cx="'+p[0]+'" cy="'+p[1]+'" r="1.8" fill="#fff"/>'});
+  if(A==='bunny')x='<path d="M34 30q-9-30 1-31 9 4 6 31zM66 30q9-30-1-31-9 4-6 31z" fill="#fff" stroke-width="2.4" '+st+'/><path d="M36 22q-3-14 0-17M64 22q3-14 0-17" '+ln(3)+' stroke="#FF8FA0"/>';
+  if(A==='cat')x='<path d="M27 38l1-22 15 12zM73 38l-1-22-15 12z" fill="#FFB86B" stroke-width="2.6" '+st+'/><path d="M32 30l1-8 6 5zM68 30l-1-8-6 5z" fill="#FF8FA0"/>';
+  if(A==='devil')x='<path d="M31 33q-8-12-3-17 9 3 11 14zM69 33q8-12 3-17-9 3-11 14z" fill="#FF5A5F" stroke-width="2.6" '+st+'/>';
+  if(A==='halo')x='<ellipse cx="50" cy="14" rx="17" ry="5" fill="none" stroke="#FFD23F" stroke-width="4.5"/><ellipse cx="50" cy="14" rx="17" ry="5" fill="none" stroke="'+INK+'" stroke-width="1" opacity=".5"/>';
+  if(A==='headband')x='<path d="M24 43q26-18 52 0" '+ln(6)+' stroke="#FF5A5F"/><path d="M24 43q26-18 52 0" '+ln(1)+'/>';
+  if(A==='beanie')x='<path d="M26 40C26 18 74 18 74 40z" fill="#5B7CFA" stroke-width="2.6" '+st+'/><path d="M24 38h52v7H24z" fill="#FF5A5F" stroke-width="2.6" '+st+'/><circle cx="50" cy="19" r="5" fill="#fff" '+st+' stroke-width="2"/>';
+  if(A==='clown')x='<circle cx="50" cy="58" r="6" fill="#FF5A5F" '+st+' stroke-width="2.2"/><circle cx="48.3" cy="56.3" r="1.6" fill="#fff" opacity=".8"/>';
+  if(A==='wizard')x='<path d="M50 -2L28 36h44z" fill="#7B5CFF" stroke-width="2.6" '+st+'/><path d="M18 38q32-10 64 0-6 6-32 6t-32-6z" fill="#7B5CFF" stroke-width="2.6" '+st+'/><path transform="translate(50 22) scale(.8)" d="M0-8l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L0 4l-5 2.8 1.2-5.6-4.2-3.8 5.6-.6z" fill="#FFD23F"/>';
+  if(A==='chef')x='<path d="M32 38v-9a10 10 0 0 1 8-16 10 10 0 0 1 20 0 10 10 0 0 1 8 16v9z" fill="#fff" stroke-width="2.6" '+st+'/><path d="M32 36h36" '+ln(2)+'/>';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" aria-hidden="true"><clipPath id="avc"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#avc)"><rect width="100" height="100" fill="'+(a.bg||'#34D3A8')+'"/>'+pat+hb+body+face+hf+ex+br+e+bd+'<g class="am">'+m+'</g>'+x+'</g></svg>';
 }
-const BGS=['#FFD23F','#34D3A8','#FF5A5F','#5B7CFA','#C9B6FF','#FFB86B'];
-const SKINS=['#FADDC6','#F6C9A0','#E8B48A','#C98E63','#8D5A3C','#5A3825'];
-const EYES=[['dots','Yeux ronds'],['happy','Yeux rieurs'],['wide','Grands yeux'],['sleepy','Yeux endormis']];
-const MOUTHS=[['smile','Sourire'],['open','Bouche ouverte'],['o','Bouche en O'],['tongue','Langue tirée']];
-const ACCS=[['none','Aucun'],['glasses','Lunettes'],['headphones','Casque'],['crown','Couronne'],['cap','Casquette']];
-function randomAvatar(){return {bg:pick(BGS),skin:pick(SKINS),eyes:pick(EYES)[0],mouth:pick(MOUTHS)[0],acc:pick(ACCS)[0]}}
+function randomAvatar(){
+  const r=()=>Math.random();
+  return {bg:pick(BGS),pat:r()<.35?pick(PATS)[0]:'none',skin:pick(SKINS.slice(0,6)),
+    hair:r()<.85?pick(HAIRS.slice(1))[0]:'none',hairc:pick(HAIRCS),
+    eyes:pick(EYES)[0],brows:r()<.6?pick(BROWS.slice(1))[0]:'none',mouth:pick(MOUTHS)[0],
+    beard:r()<.15?pick(BEARDS.slice(1))[0]:'none',extra:r()<.4?pick(EXTRAS.slice(1))[0]:'none',
+    acc:r()<.65?pick(ACCS.slice(1))[0]:'none',fit:pick(FITS)[0],out:pick(OUTS)};
+}
 
 /* ---------- Niveaux de roast ---------- */
 const LVO=['sober','danger','hard'];
@@ -491,9 +617,9 @@ const uuid=()=>{
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)});
 };
 let myId=null,convs=[],posts=[],reminders=[],follows={},readModes={};
-let me={name:'',handle:'',voice:'normale',a:{bg:'#34D3A8',skin:'#F6C9A0',eyes:'wide',mouth:'smile',acc:'none'},adult:false,aiOn:true,roastOk:true,maxLevel:'danger',defLevel:'danger',blocked:['Santé','Argent'],aiSeen:false,created:false};
+let me={name:'',handle:'',voice:'normale',a:{bg:'#34D3A8',pat:'none',skin:'#F6C9A0',hair:'short',hairc:'#8D5A3C',eyes:'wide',brows:'normal',mouth:'smile',beard:'none',extra:'none',acc:'none',fit:'tee',out:'#FFFFFF'},adult:false,aiOn:true,roastOk:true,maxLevel:'danger',defLevel:'danger',blocked:['Santé','Argent'],aiSeen:false,created:false};
 const S={rate:1};
-const UNK={name:'Ami',handle:'@ami',pitch:1,roastOk:false,cap:'sober',blocked:[],a:{bg:'#C9B6FF',skin:'#F6C9A0',eyes:'dots',mouth:'smile',acc:'none'}};
+const UNK={name:'Ami',handle:'@ami',pitch:1,roastOk:false,cap:'sober',blocked:[],a:{bg:'#C9B6FF',skin:'#F6C9A0',eyes:'dots',mouth:'smile',acc:'none',hair:'short',hairc:'#2B1B14'}};
 
 function loadLocal(){
   try{
@@ -799,6 +925,7 @@ function paintKey(key){
   const on=!!(np&&np.key===key),p=on?np.prog:0;
   els.forEach(el=>{
     el.classList.toggle('playing',on);
+    const row=el.closest('.mrow');if(row)row.classList.toggle('speaking',on);
     const bs=el.querySelectorAll('.wave i'),k=on?Math.floor(p*bs.length):0;
     bs.forEach((b,i)=>b.classList.toggle('on',i<k));
     const ws=el.querySelectorAll('.tr .w'),wk=on?Math.ceil(p*ws.length):0;
@@ -809,7 +936,11 @@ function paintKey(key){
     if(pb)pb.setAttribute('aria-label',on?'Arrêter la lecture':'Écouter');
   });
 }
-function killAudio(st){if(st&&st.audio){try{st.audio.pause();st.audio.removeAttribute('src');st.audio.load()}catch(e){}}}
+function killAudio(st){
+  if(!st||!st.audio)return;
+  try{st.audio.pause();st.audio.removeAttribute('src');st.audio.load()}catch(e){}
+  (st.nodes||[]).forEach(n=>{try{if(n.stop)n.stop()}catch(e){}try{n.disconnect()}catch(e){}});
+}
 function finish(){
   if(!np)return;
   const k=np.key,after=np.after;clearInterval(np.timer);killAudio(np);np=null;paintKey(k);
@@ -861,12 +992,23 @@ async function audioUrl(path){
 }
 async function startAudio(key,src,o){
   stopPlay();
-  const a=new Audio();a.preload='auto';a.src=src;
-  try{a.playbackRate=Math.max(0.5,Math.min(2,S.rate))}catch(e){}
-  const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now()};
+  const fx=o.fx?FUN.filter(f=>f.id===o.fx)[0]:null;
+  const a=new Audio();a.preload='auto';
+  if(fx&&!/^blob:/.test(src))a.crossOrigin='anonymous';
+  a.src=src;
+  try{
+    a.playbackRate=Math.max(0.5,Math.min(2,S.rate*(fx&&fx.rate||1)));
+    if(fx&&fx.rate){a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false}
+  }catch(e){}
+  const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now(),nodes:null};
   np=st;
+  if(fx&&(fx.ring||fx.band||fx.warm||fx.dist||fx.echo)){try{st.nodes=buildFx(a,fx)}catch(e){st.nodes=null}}
   a.onended=()=>{if(np===st)finish()};
-  a.onerror=()=>{if(np===st){stopPlay();toast("Lecture du vocal impossible.")}};
+  a.onerror=()=>{
+    if(np!==st)return;
+    if(fx&&!o.retried){stopPlay();startAudio(key,src,Object.assign({},o,{fx:null,retried:true}));return}
+    stopPlay();toast("Lecture du vocal impossible.");
+  };
   a.ontimeupdate=()=>{
     if(np!==st)return;
     const d=isFinite(a.duration)&&a.duration>0?a.duration:(o.dur||0);
@@ -877,8 +1019,10 @@ async function startAudio(key,src,o){
   try{await a.play()}catch(e){if(np===st){stopPlay();toast("Lecture du vocal impossible.")}}
 }
 function playSpec(key,sp,after){
+  const fun=sp.fx?FUN.filter(f=>f.id===sp.fx)[0]:null;
+  if(fun)getCtx();
   if(sp.audio){
-    const go=src=>{startAudio(key,src,{dur:sp.dur,after:after})};
+    const go=src=>{startAudio(key,src,{dur:sp.dur,after:after,fx:sp.fx})};
     if(/^blob:/.test(sp.audio)){go(sp.audio);return}
     audioUrl(sp.audio).then(go).catch(()=>{
       if(sp.text)startPlay(key,{text:sp.text,pitch:sp.pitch,gender:sp.gender,after:after});
@@ -886,7 +1030,79 @@ function playSpec(key,sp,after){
     });
     return;
   }
+  if(fun){
+    startPlay(key,{text:fun.rewrite?fun.rewrite(sp.text):sp.text,pitch:fun.tts.pitch,rateMul:fun.tts.rate,gender:fun.tts.gender||sp.gender,after:after});
+    return;
+  }
   startPlay(key,Object.assign({after:after},sp));
+}
+
+
+/* ---------- Voix fun (effets sur les vrais vocaux, style sur les textes lus) ---------- */
+function rwPirate(t){
+  let s=String(t);
+  [[/\b(bonjour|salut|coucou|hello)\b/gi,'Ohé'],[/\b(mon ami|mes amis|les amis|ami|amis)\b/gi,'moussaillon'],[/\boui\b/gi,'Aye'],[/\bnon\b/gi,'Par Neptune, non'],[/\b(très|trop)\b/gi,'sacrément'],[/\b(argent|euros?)\b/gi,'doublons'],[/\b(maison|appartement)\b/gi,'navire'],[/\b(manger|dîner|déjeuner)\b/gi,'faire bombance'],[/\b(boire|verre)\b/gi,'chope de rhum'],[/\bmerci\b/gi,'mille mercis, camarade']].forEach(r=>{s=s.replace(r[0],r[1])});
+  return 'Arrr, '+s+' '+pick(['Mille sabords !','Yo ho ho !','Par la barbe de Barbe-Noire !','Tonnerre de Brest !']);
+}
+function rwComment(t){
+  return pick(['Mesdames et messieurs, ','Et là, incroyable : ','Attention, ça va être énorme : '])+String(t)+' '+pick(['Quelle action !','Il n\'y a plus qu\'à applaudir !','Et c\'est le but, mes amis !','Du jamais vu dans l\'histoire du message !']);
+}
+function rwRobot(t){
+  return 'Bip boup. Transmission. '+String(t).replace(/\bje\b/gi,'cette unité').replace(/[,;]/g,' bip').replace(/!+/g,'. Fin de message.')+' Fin de transmission.';
+}
+function rwMamie(t){
+  return 'Oh mon petit, '+String(t)+' '+pick(['Mets une écharpe, hein !','Tu manges bien au moins ?','Appelle-moi quand tu rentres.']);
+}
+const FUN=[
+  {id:'pirate',label:'Pirate',e:'🏴‍☠️',rate:0.88,dist:0.3,echo:0.15,tts:{pitch:0.55,rate:0.85,gender:'m'},rewrite:rwPirate},
+  {id:'comment',label:'Commentateur',e:'🎙️',rate:1.08,band:true,echo:0.3,tts:{pitch:1.1,rate:1.35,gender:'m'},rewrite:rwComment},
+  {id:'robot',label:'Robot',e:'🤖',ring:55,tts:{pitch:0.45,rate:0.9},rewrite:rwRobot},
+  {id:'monstre',label:'Monstre',e:'👹',rate:0.68,dist:0.5,tts:{pitch:0.1,rate:0.7,gender:'m'}},
+  {id:'souris',label:'Souris',e:'🐭',rate:1.55,tts:{pitch:2,rate:1.25,gender:'f'}},
+  {id:'radio',label:'Vieille radio',e:'📻',band:true,dist:0.2,tts:{pitch:1,rate:1.05}},
+  {id:'grotte',label:'Grotte',e:'🕳️',echo:0.55,rate:0.95,tts:{pitch:0.8,rate:0.8}},
+  {id:'mamie',label:'Grand-mère',e:'👵',rate:0.92,warm:true,tts:{pitch:1.4,rate:0.8,gender:'f'},rewrite:rwMamie}
+];
+let actx=null;
+function getCtx(){
+  try{
+    if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C()}
+    if(actx&&actx.state==='suspended')actx.resume();
+  }catch(e){actx=null}
+  return actx;
+}
+function distCurve(k){
+  const n=256,c=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(3+k)*x*20*(Math.PI/180)/(Math.PI+k*Math.abs(x))}
+  return c;
+}
+function buildFx(a,fx){
+  const ctx=getCtx();if(!ctx)return null;
+  const nodes=[],src=ctx.createMediaElementSource(a);nodes.push(src);
+  let node=src;
+  const link=n=>{node.connect(n);node=n;nodes.push(n)};
+  if(fx.ring){
+    const g=ctx.createGain();g.gain.value=0;
+    const osc=ctx.createOscillator();osc.type='sine';osc.frequency.value=fx.ring;osc.connect(g.gain);osc.start();nodes.push(osc);
+    link(g);
+    const mk=ctx.createGain();mk.gain.value=2;link(mk);
+  }
+  if(fx.band){
+    const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=520;link(hp);
+    const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3100;link(lp);
+  }
+  if(fx.warm){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;link(lp)}
+  if(fx.dist){const ws=ctx.createWaveShaper();ws.curve=distCurve(fx.dist*60);link(ws)}
+  const out=ctx.createGain();out.gain.value=fx.dist?0.8:1;link(out);
+  out.connect(ctx.destination);
+  if(fx.echo){
+    const d=ctx.createDelay(1);d.delayTime.value=0.2;
+    const fb=ctx.createGain();fb.gain.value=Math.min(0.55,fx.echo+0.15);
+    const wet=ctx.createGain();wet.gain.value=0.55;
+    out.connect(d);d.connect(fb);fb.connect(d);d.connect(wet);wet.connect(ctx.destination);
+    nodes.push(d,fb,wet);
+  }
+  return nodes;
 }
 
 /* ---------- Toast, feuilles, éclats ---------- */
@@ -1053,7 +1269,7 @@ function go(to){
 /* ---------- Connexion / inscription ---------- */
 let obAvatar=null,authMode='signup',authErr='',authBusy=false;
 function renderOnboard(){
-  if(!obAvatar)obAvatar=Object.assign({},me.a);
+  if(!obAvatar)obAvatar=randomAvatar();
   const su=authMode==='signup';
   $('#v-onboard').innerHTML=
     '<form class="ob" id="obform" autocomplete="on">'+
@@ -1264,12 +1480,12 @@ function mmenuHTML(c,m,sub){
   const row=(act,ic,l,x)=>'<button class="ctact" data-act="'+act+'"'+(x||'')+'><span>'+ico(ic,20)+'</span><span class="cinfo"><b style="font-size:15px">'+l+'</b></span></button>';
   if(m.k==='ai')return head+quick;
   if(sub==='tr')return head+'<div class="lbl">Traduire en</div><div class="chips">'+LANGS.map(l=>'<button class="chip" data-act="mtr" data-v="'+l[0]+'">'+l[0]+'</button>').join('')+'</div>';
-  if(sub==='sty')return head+'<div class="lbl">Lire ce message en mode…</div><div class="chips">'+STYLES.map(s=>'<button class="chip" data-act="msty" data-v="'+s+'">'+s+'</button>').join('')+'</div>';
+  if(sub==='fun')return head+'<div class="lbl">Lire ce message avec la voix…</div><div class="chips">'+FUN.map(f=>'<button class="chip" data-act="mfun" data-v="'+f.id+'">'+f.e+' '+f.label+'</button>').join('')+'</div><p class="small" style="margin:0">Sur un vocal, l\'effet transforme la vraie voix. Sur un texte, la synthèse change de ton et de style.</p>';
   return head+quick+'<div class="list" style="gap:8px">'+
     row('mreply','reply','Répondre')+
     row('msum','sparkle','Résumer (IA)')+
     row('mtrsub','globe','Traduire (IA)')+
-    row('mstysub','wand','Lire en style (IA)')+
+    row('mfunsub','wand','Lire avec une voix fun')+
     row('mcopy','copy','Copier le texte')+'</div>';
 }
 
@@ -1753,8 +1969,16 @@ function publish(type){
 }
 
 /* ---------- Profil ---------- */
+const AVDEF={pat:'none',hair:'none',hairc:'#2B1B14',brows:'none',beard:'none',extra:'none',acc:'none',fit:'tee',out:'#FFFFFF'};
+let AVT='hair';
 function opt(k,v,label,inner){
-  return '<button class="opt" data-act="av" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(me.a[k]===v)+'" aria-label="'+label+'">'+inner+'</button>';
+  const cur=me.a[k]||AVDEF[k];
+  return '<button class="opt" data-act="av" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'" aria-label="'+label+'">'+inner+'</button>';
+}
+function avEditorHTML(){
+  const cat=AVCATS.filter(c=>c.k===AVT)[0]||AVCATS[0];
+  const grid=cat.vals?cat.vals.map(v=>opt(cat.k,v,cat.label+' '+v,'<span class="dot" style="background:'+v+'"></span>')).join(''):cat.opts.map(x=>{const o={};o[cat.k]=x[0];return opt(cat.k,x[0],x[1],avatar(Object.assign({},me.a,o),54))}).join('');
+  return '<div class="chips avtabs" role="tablist">'+AVCATS.map(c=>'<button class="chip" data-act="avtab" data-k="'+c.k+'" aria-pressed="'+(c.k===cat.k)+'">'+c.label+'</button>').join('')+'</div><div class="opts">'+grid+'</div>';
 }
 function sw(k,label,sub){
   return '<div class="srow"><div><b>'+label+'</b>'+(sub?'<p class="small">'+sub+'</p>':'')+'</div><button class="sw" role="switch" aria-checked="'+(!!me[k])+'" aria-label="'+label+'" data-act="tog" data-k="'+k+'"><i></i></button></div>';
@@ -1767,12 +1991,8 @@ function renderMe(){
   const cap=me.adult?'hard':'danger';
   let h='<div class="stage left"><div class="me-head"><span class="av" id="me-av">'+avatar(me.a,84)+'</span><div class="me-fields"><label class="lbl" for="myname">Ton nom</label><input id="myname" class="name-in" maxlength="24" value="'+esc(me.name)+'" autocomplete="off"><span class="small" id="myhandle">'+esc(u.handle)+'</span></div></div>'+
     '<div class="stats"><span><b>'+mineC+'</b> messages</span><span><b>'+mineP.length+'</b> publication'+(mineP.length>1?'s':'')+'</span><span><b>'+rx+'</b> réaction'+(rx>1?'s':'')+'</span></div></div>';
-  h+='<div class="stage left"><h2 class="h3">Ton avatar</h2>'+
-    g('Fond',BGS.map(c=>opt('bg',c,'Fond '+c,'<span class="dot" style="background:'+c+'"></span>')).join(''))+
-    g('Teint',SKINS.map(c=>opt('skin',c,'Teint '+c,'<span class="dot" style="background:'+c+'"></span>')).join(''))+
-    g('Yeux',EYES.map(x=>opt('eyes',x[0],x[1],avatar(Object.assign({},me.a,{eyes:x[0]}),44))).join(''))+
-    g('Bouche',MOUTHS.map(x=>opt('mouth',x[0],x[1],avatar(Object.assign({},me.a,{mouth:x[0]}),44))).join(''))+
-    g('Accessoire',ACCS.map(x=>opt('acc',x[0],x[1],avatar(Object.assign({},me.a,{acc:x[0]}),44))).join(''))+
+  h+='<div class="stage left"><h2 class="h3">Ton avatar</h2><button class="btn ghost" data-act="avrand">'+ico('wand',18)+'Surprends-moi</button><div id="aved">'+avEditorHTML()+'</div></div>';
+  h+='<div class="stage left">'+
     '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix.</p><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(me.voice===x.id)+'">'+x.label+'</button>').join('')+'</div>'+
     '<div data-key="v:test"><button class="btn ghost plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter ma voix</span></button></div></div></div>';
   h+='<div class="stage left"><h2 class="h3">IA, roasts et sécurité</h2>'+
@@ -1911,7 +2131,8 @@ A.cancelreply=()=>{replyTo=null;renderReplyBar()};
 A.mcopy=()=>{const c=conv(MM.cid),m=c.msgs.find(x=>x.id===MM.mid);closeSheet();copyText(m.text||'','Texte copié')};
 A.msum=()=>inlineAI('sum','');
 A.mtrsub=()=>{const c=conv(MM.cid);setSheet(mmenuHTML(c,c.msgs.find(x=>x.id===MM.mid),'tr'))};
-A.mstysub=()=>{const c=conv(MM.cid);setSheet(mmenuHTML(c,c.msgs.find(x=>x.id===MM.mid),'sty'))};
+A.mfunsub=()=>{const c=conv(MM.cid);setSheet(mmenuHTML(c,c.msgs.find(x=>x.id===MM.mid),'fun'))};
+A.mfun=t=>{const key='m:'+MM.cid+':'+MM.mid;const sp=Object.assign({},speechFor(key),{fx:t.dataset.v});closeSheet();stopPlay();playSpec(key,sp)};
 A.mtr=t=>inlineAI('tr',t.dataset.v);
 A.msty=t=>inlineAI('sty',t.dataset.v);
 A.togq=()=>{QR=!QR;$('#quickrow').hidden=!QR};
@@ -2003,6 +2224,8 @@ A.ins=t=>{
 
 /* Profil */
 A.av=t=>{me.a[t.dataset.k]=t.dataset.v;save();keepScroll(renderMe)};
+A.avtab=t=>{AVT=t.dataset.k;keepScroll(renderMe)};
+A.avrand=()=>{me.a=randomAvatar();save();keepScroll(renderMe)};
 A.voice=t=>{
   me.voice=t.dataset.v;save();
   document.querySelectorAll('[data-act="voice"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===me.voice)));
