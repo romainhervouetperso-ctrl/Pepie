@@ -1671,7 +1671,7 @@ function listenAll(){
   };
   next();
 }
-function inviteLink(c){return location.origin+location.pathname+(me.handle?'?i='+encodeURIComponent(me.handle):'')}
+function inviteLink(c){return location.origin+location.pathname+(me.handle?'?i='+encodeURIComponent(me.handle)+'&v=2':'?v=2')}
 function copyText(t,okMsg){
   try{navigator.clipboard.writeText(t).then(()=>toast(okMsg),()=>toast(t))}catch(e){toast(t)}
 }
@@ -2220,7 +2220,7 @@ A.cstart=async t=>{
   WK=false;openChat(c.id);
 };
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const inviteMsg=()=>(S.invmsg?S.invmsg.trim()+' ':'')+"Rejoins-moi sur Pépie, la messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter ! Mon identifiant : "+(me.handle?'@'+me.handle:'')+" "+inviteLink();
+const inviteMsg=()=>(S.invmsg?S.invmsg.trim()+' ':'')+"Rejoins-moi sur Pépie, ici on s'entend. Mon identifiant : "+(me.handle?'@'+me.handle:'')+" "+inviteLink();
 function inviteHTML(){
   const row=(act,ic,l,s)=>'<button class="ctact" data-act="'+act+'"><span>'+ico(ic,20)+'</span><span class="cinfo"><b style="font-size:15px">'+l+'</b>'+(s?'<span>'+s+'</span>':'')+'</span></button>';
   const canC=!!(navigator.contacts&&navigator.contacts.select);
