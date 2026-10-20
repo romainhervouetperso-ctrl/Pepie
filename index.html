@@ -767,7 +767,7 @@ function rpcReact(m,e){
 /* ---------- Conversion lignes → objets de l'app ---------- */
 function profToU(p){
   const av=p.avatar&&p.avatar.bg?p.avatar:UNK.a;
-  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(p.voice),gender:genderOf(p.voice),voice:p.voice,roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
+  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(String(p.voice||'').split('~')[0]),gender:genderOf(String(p.voice||'').split('~')[0]),voice:String(p.voice||'').split('~')[0],roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
 }
 async function ensureProfiles(ids,force){
   const need=Array.from(new Set(ids)).filter(i=>i&&i!==myId&&(force||!U[i]));
@@ -1150,7 +1150,8 @@ async function piperSession(voice){
   if(piperSess&&piperSess.model===voice.model)return piperSess.s;
   piperSess=null;
   try{m.TtsSession._instance=null}catch(e){}
-  const s=new m.TtsSession({voiceId:voice.model,progress:p=>piperProgress(p,voice),logger:l=>{console.log('[piper]',l)}});
+  const base=new URL('.',location.href).href;
+  const s=new m.TtsSession({voiceId:voice.model,progress:p=>piperProgress(p,voice),logger:l=>{console.log('[piper]',l)},wasmPaths:{onnxWasm:base+'ort/',piperData:base+'piper/piper_phonemize.data',piperWasm:base+'piper/piper_phonemize.wasm'}});
   try{await s.waitReady}catch(e){try{m.TtsSession._instance=null}catch(_){}throw e}
   piperSess={model:voice.model,s:s};
   return s;
@@ -1628,7 +1629,6 @@ function mmenuHTML(c,m,sub){
     row('mreply','reply','Répondre')+
     row('msum','sparkle','Résumer (IA)')+
     row('mtrsub','globe','Traduire (IA)')+
-    row('mfunsub','wand','Lire avec une voix fun')+
     row('mcopy','copy','Copier le texte')+'</div>';
 }
 
@@ -2138,9 +2138,8 @@ function renderMe(){
     '<div class="stats"><span><b>'+mineC+'</b> messages</span><span><b>'+mineP.length+'</b> publication'+(mineP.length>1?'s':'')+'</span><span><b>'+rx+'</b> réaction'+(rx>1?'s':'')+'</span></div></div>';
   h+='<div class="stage left"><h2 class="h3">Ton avatar</h2><button class="btn ghost" data-act="avrand">'+ico('wand',18)+'Surprends-moi</button><div id="aved">'+avEditorHTML()+'</div></div>';
   h+='<div class="stage left">'+
-    '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix. Les effets ne changent que le son : les mots restent les tiens.</p>'+
+    '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix. </p>'+
     '<div class="lbl" style="margin-top:6px">Voix</div><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+'</button>').join('')+PIPER.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(sv.id0===x.id)+'">'+x.label+' · '+x.mb+' Mo</button>').join('')+'</div>'+
-    '<div class="lbl" style="margin-top:6px">Effet drôle</div><div class="chips"><button class="chip" data-act="vfun" data-v="" aria-pressed="'+(!sv.fun)+'">Aucun</button>'+FUN.map(f=>'<button class="chip" data-act="vfun" data-v="'+f.id+'" aria-pressed="'+(!!sv.fun&&sv.fun.id===f.id)+'">'+f.e+' '+f.label+'</button>').join('')+'</div>'+
     '<div class="srow"><div><b>Voix réalistes Piper</b><p class="small">Gratuites, calculées sur ton téléphone. Téléchargement unique de 28 à 77 Mo par voix (mieux en Wi-Fi). Nécessaire aussi pour entendre les voix Piper de tes amis.</p></div><button class="sw" role="switch" aria-checked="'+(!!S.piper)+'" aria-label="Voix Piper" data-act="piperTog"><i></i></button></div>'+
     '<div data-key="v:test"><button class="btn ghost plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter ma voix</span></button></div></div></div>';
   h+='<div class="stage left"><h2 class="h3">Notifications</h2><div class="srow"><div><b>Prévenez-moi des nouveaux messages</b><p class="small">Une alerte sur ton téléphone, même quand Pépie est fermée. Sur iPhone, ajoute d\'abord Pépie à l\'écran d\'accueil.</p></div><button class="sw" role="switch" aria-checked="'+(!!S.push)+'" aria-label="Notifications" data-act="pushTog"><i></i></button></div></div>';
@@ -2385,7 +2384,7 @@ function setVoice(base,fun){
   save();keepScroll(renderMe);
   playSpec('v:test',speechFor('v:test'));
 }
-A.voice=t=>{const sv=splitVoice(me.voice);setVoice(t.dataset.v,sv.fun&&sv.fun.id)};
+A.voice=t=>{const sv=splitVoice(me.voice);setVoice(t.dataset.v,null)};
 A.vfun=t=>{const sv=splitVoice(me.voice);setVoice(sv.id0,t.dataset.v||null)};
 A.piperTog=()=>{
   if(!piperSupported()){toast("Ton navigateur ne gère pas les voix Piper.");return}
@@ -2456,7 +2455,7 @@ async function startApp(uid2){
   const r=await sb.from('profiles').select('*').eq('id',myId).maybeSingle();
   if(r.error||!r.data){await sb.auth.signOut();throw new Error("Profil introuvable. Reconnecte-toi.")}
   const p=r.data;
-  me.handle=p.handle;me.name=p.name;me.a=p.avatar&&p.avatar.bg?p.avatar:me.a;me.voice=p.voice;me.adult=p.adult;
+  me.handle=p.handle;me.name=p.name;me.a=p.avatar&&p.avatar.bg?p.avatar:me.a;me.voice=String(p.voice||'normale').split('~')[0];me.adult=p.adult;
   me.aiOn=p.ai_on;me.roastOk=p.roast_ok;me.maxLevel=p.max_level;me.defLevel=p.def_level;me.blocked=p.blocked||[];me.created=true;
   sentProf=JSON.stringify(profOf());
   loadLocal();
