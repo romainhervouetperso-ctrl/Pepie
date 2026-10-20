@@ -506,9 +506,10 @@ function save(){
 }
 
 const meName=()=>(me.name||'').trim()||'Moi';
-function pitchOf(v){return v==='grave'?0.7:(v==='aigue'?1.4:1)}
+function pitchOf(v){return vinfo(v).p}
+const genderOf=v=>vinfo(v).g;
 function userOf(id){
-  if(id==='me')return {name:meName(),handle:'@'+(me.handle||slug(me.name)),a:me.a,pitch:pitchOf(me.voice)};
+  if(id==='me')return {name:meName(),handle:'@'+(me.handle||slug(me.name)),a:me.a,pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
   return U[id]||UNK;
 }
 const nameOf=id=>userOf(id).name;
@@ -527,14 +528,16 @@ function scanBanned(c,m,silent){
   c.scores[m.f]=(c.scores[m.f]||0)+1;
   if(!silent)c.msgs.push({id:uuid(),f:'sys',k:'sys',text:'Mot interdit : '+nameOf(m.f)+' a dit « '+c.banned+' » (+1)',t:Date.now(),rx:{},my:[]});
 }
-const META_KEYS=['re','tag','lv','lvl','title','fb'];
-function addMsg(c,m){
-  const id=uuid();
+const META_KEYS=['re','tag','lv','lvl','title','fb','audio'];
+function addMsg(c,m,pre){
+  const id=m.id||uuid();
   m=Object.assign({id:id,t:Date.now(),rx:{},my:[]},m);
   c.msgs.push(m);scanBanned(c,m,false);
   const meta={};
   META_KEYS.forEach(k=>{if(m[k]!==undefined&&m[k]!=='')meta[k]=m[k]});
-  sb.from('messages').insert({id:id,conv_id:c.id,sender:myId,kind:m.k,body:m.text||'',dur:m.dur==null?null:m.dur,meta:meta}).then(r=>{
+  const go=()=>sb.from('messages').insert({id:id,conv_id:c.id,sender:myId,kind:m.k,body:m.text||'',dur:m.dur==null?null:m.dur,meta:meta});
+  const run=pre?pre.then(()=>go(),()=>{delete meta.audio;toast("Ton audio n'a pas pu être envoyé : le vocal part en texte.");return go()}):go();
+  Promise.resolve(run).then(r=>{
     if(r.error){
       c.msgs=c.msgs.filter(x=>x!==m);
       toast("Message non envoyé : "+r.error.message);
@@ -557,7 +560,7 @@ function rpcReact(m,e){
 /* ---------- Conversion lignes → objets de l'app ---------- */
 function profToU(p){
   const av=p.avatar&&p.avatar.bg?p.avatar:UNK.a;
-  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(p.voice),roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
+  return {name:p.name,handle:'@'+p.handle,pitch:pitchOf(p.voice),gender:genderOf(p.voice),roastOk:p.roast_ok,cap:p.adult?p.max_level:minLv(p.max_level,'danger'),blocked:p.blocked||[],a:av,adult:p.adult};
 }
 async function ensureProfiles(ids,force){
   const need=Array.from(new Set(ids)).filter(i=>i&&i!==myId&&(force||!U[i]));
@@ -575,11 +578,12 @@ function msgFromRow(r){
   const m={id:r.id,f:r.sender===myId?'me':r.sender,k:r.kind,text:r.body,t:Date.parse(r.created_at),rx:c.rx,my:c.my};
   if(r.dur!=null)m.dur=r.dur;
   META_KEYS.concat(['sum','tr','sty']).forEach(k=>{if(meta[k]!==undefined)m[k]=meta[k]});
+  if(m.k!=='voice')delete m.audio;
   return m;
 }
 function postFromRow(r,old){
   const c=counts(r.rx);
-  return {id:r.id,u:r.author===myId?'me':r.author,type:r.kind,t:Date.parse(r.created_at),dur:r.dur,text:r.body,fx:r.fx||1,rx:c.rx,my:c.my,
+  return {id:r.id,audio:r.audio||null,u:r.author===myId?'me':r.author,type:r.kind,t:Date.parse(r.created_at),dur:r.dur,text:r.body,fx:r.fx||1,rx:c.rx,my:c.my,
     cm:(r.cm||[]).map(x=>({u:x.u===myId?'me':x.u,text:x.text})),open:old?old.open:false};
 }
 
@@ -654,7 +658,7 @@ async function onMsgInsert(r){
   scanBanned(c,m,false);
   if(view==='chat'&&cur===c.id){
     renderMsgs(true);markRead(c);
-    if(c.readMode==='voice'&&!np&&(m.k==='text'||m.k==='voice'))startPlay('m:'+c.id+':'+m.id,{text:m.text,pitch:userOf(m.f).pitch});
+    if(c.readMode==='voice'&&!np&&(m.k==='text'||m.k==='voice'))playSpec('m:'+c.id+':'+m.id,speechFor('m:'+c.id+':'+m.id));
   }else{
     c.unread=(c.unread||0)+1;refreshLists();
     if(m.k!=='sys')toast(nameOf(m.f)+' : '+(m.k==='voice'?'Vocal':snip(m.text,40)));
@@ -663,10 +667,11 @@ async function onMsgInsert(r){
 function onMsgUpdate(r){
   const c=conv(r.conv_id),m=c&&c.msgs.find(x=>x.id===r.id);
   if(!m)return;
-  const k=counts(r.rx);m.rx=k.rx;m.my=k.my;
-  const meta=r.meta||{};
-  ['sum','tr','sty'].forEach(key=>{if(meta[key]&&!(m[key]&&m[key].loading))m[key]=meta[key]});
-  if(view==='chat'&&cur===c.id)renderMsgs();
+  const k=counts(r.rx),meta=r.meta||{};
+  let ch=JSON.stringify(m.rx)!==JSON.stringify(k.rx)||JSON.stringify(m.my)!==JSON.stringify(k.my);
+  m.rx=k.rx;m.my=k.my;
+  ['sum','tr','sty'].forEach(key=>{if(meta[key]&&!(m[key]&&m[key].loading)&&JSON.stringify(m[key])!==JSON.stringify(meta[key])){m[key]=meta[key];ch=true}});
+  if(ch&&view==='chat'&&cur===c.id)renderMsgs();
 }
 async function onPostChange(r,isNew){
   const old=posts.find(p=>p.id===r.id);
@@ -692,6 +697,43 @@ function startRealtime(){
     .subscribe();
 }
 
+/* ---------- Actualisation automatique (en plus du temps réel) ---------- */
+let pollN=0,pollBusy=false;
+async function poll(){
+  if(!myId||pollBusy||document.hidden)return;
+  pollBusy=true;
+  try{
+    pollN++;
+    const ids=convs.map(c=>c.id);
+    if(ids.length){
+      let maxT=0;convs.forEach(c=>c.msgs.forEach(m=>{if(m.t>maxT)maxT=m.t}));
+      const since=new Date(Math.max(0,maxT-120000)).toISOString();
+      const r=await sb.from('messages').select('*').in('conv_id',ids).gt('created_at',since).order('created_at',{ascending:true}).limit(300);
+      const rows=r.data||[];
+      for(let i=0;i<rows.length;i++){
+        const row=rows[i],c=conv(row.conv_id);
+        if(c&&c.msgs.some(x=>x.id===row.id))onMsgUpdate(row);else await onMsgInsert(row);
+      }
+      if(view==='chat'&&cur){
+        const r3=await sb.from('messages').select('*').eq('conv_id',cur).order('created_at',{ascending:false}).limit(40);
+        (r3.data||[]).forEach(row=>onMsgUpdate(row));
+      }
+    }
+    if(pollN%4===0){
+      const r2=await sb.from('conv_members').select('conv_id').eq('user_id',myId);
+      const rows=r2.data||[];
+      for(let i=0;i<rows.length;i++){if(!conv(rows[i].conv_id)){const c=await loadConv(rows[i].conv_id);if(c)refreshLists()}}
+    }
+    if(pollN%4===1&&view==='feed'){
+      const sig=()=>JSON.stringify(posts.map(p=>[p.id,p.rx,p.cm.length]));
+      const old=sig();await loadPosts();if(sig()!==old)keepScroll(renderFeed);
+    }
+  }catch(e){}finally{pollBusy=false}
+}
+setInterval(poll,3000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
+window.addEventListener('focus',()=>poll());
+
 /* ---------- Comptes ---------- */
 const emailOf=h=>String(h).trim().toLowerCase()+'@pepie.chat';
 async function signUp(handle,password,name,avatar,adult){
@@ -714,10 +756,25 @@ let voices=[];
 function loadVoices(){try{voices=synth?synth.getVoices():[]}catch(e){voices=[]}}
 loadVoices();
 if(synth&&synth.addEventListener){try{synth.addEventListener('voiceschanged',loadVoices)}catch(e){}}
-function voiceFor(lang){
+const FEM=/denise|hortense|julie|am[eé]lie|audrey|marie|brigitte|c[eé]line|chantal|elsa|vivienne|eloise|sylvie|l[eé]a\b|clara|female|femme|google fran[cç]ais|siri.*(f|female)/i;
+const MAS=/henri|paul|thomas|claude|antoine|jean|nicolas|bernard|daniel|r[eé]my|mathieu|\bmale\b|homme/i;
+function voiceFor(lang,gender){
   const p=lang.slice(0,2).toLowerCase(),f=voices.filter(v=>v.lang&&v.lang.toLowerCase().indexOf(p)===0);
-  return f.filter(v=>v.lang.toLowerCase().replace('_','-')===lang.toLowerCase())[0]||f[0]||null;
+  const exact=f.filter(v=>v.lang.toLowerCase().replace('_','-')===lang.toLowerCase());
+  const pool=exact.length?exact:f;
+  if(gender==='f'){const x=pool.filter(v=>FEM.test(v.name))[0]||f.filter(v=>FEM.test(v.name))[0];if(x)return x}
+  if(gender==='m'){const x=pool.filter(v=>MAS.test(v.name)&&!FEM.test(v.name))[0]||f.filter(v=>MAS.test(v.name)&&!FEM.test(v.name))[0];if(x)return x}
+  return pool[0]||null;
 }
+const VOICES=[
+  {id:'fem',label:'Féminine',g:'f',p:1.08},
+  {id:'fem2',label:'Féminine aiguë',g:'f',p:1.32},
+  {id:'masc',label:'Masculine',g:'m',p:0.92},
+  {id:'grave',label:'Masculine grave',g:'m',p:0.7},
+  {id:'normale',label:'Neutre',g:null,p:1},
+  {id:'aigue',label:'Neutre aiguë',g:null,p:1.35}
+];
+const vinfo=id=>VOICES.filter(v=>v.id===id)[0]||VOICES[4];
 function spoken(t){const s=String(t).replace(/[\u{1F000}-\u{1FFFF}☀-➿️]/gu,'').replace(/\s+/g,' ').trim();return s||String(t)}
 let np=null;
 function paintKey(key){
@@ -735,14 +792,15 @@ function paintKey(key){
     if(pb)pb.setAttribute('aria-label',on?'Arrêter la lecture':'Écouter');
   });
 }
+function killAudio(st){if(st&&st.audio){try{st.audio.pause();st.audio.removeAttribute('src');st.audio.load()}catch(e){}}}
 function finish(){
   if(!np)return;
-  const k=np.key,after=np.after;clearInterval(np.timer);np=null;paintKey(k);
+  const k=np.key,after=np.after;clearInterval(np.timer);killAudio(np);np=null;paintKey(k);
   if(after)try{after()}catch(e){}
 }
 function stopPlay(){
   if(!np)return;
-  const k=np.key;clearInterval(np.timer);np=null;
+  const k=np.key;clearInterval(np.timer);killAudio(np);np=null;
   try{if(synth)synth.cancel()}catch(e){}
   paintKey(k);
 }
@@ -756,7 +814,7 @@ function startPlay(key,o){
     try{
       const u=new SpeechSynthesisUtterance(sp);
       u.lang=lang;u.rate=rate;u.pitch=Math.max(0.1,Math.min(2,o.pitch||1));
-      const v=voiceFor(lang);if(v)u.voice=v;
+      const v=voiceFor(lang,o.gender);if(v)u.voice=v;
       u.onboundary=e=>{if(np===st&&typeof e.charIndex==='number'){st.boundary=true;st.prog=Math.min(1,e.charIndex/sp.length)}};
       u.onend=()=>{if(np===st)finish()};
       u.onerror=()=>{if(np===st)finish()};
@@ -773,6 +831,45 @@ function startPlay(key,o){
     paintKey(key);
   },80);
   paintKey(key);
+}
+
+/* Lecture d'un vrai vocal (audio enregistré) */
+const urlCache={};
+async function audioUrl(path){
+  const c=urlCache[path];if(c&&c.exp>Date.now())return c.url;
+  const r=await sb.storage.from('voices').createSignedUrl(path,3600);
+  if(r.error||!r.data)throw (r.error||new Error('url'));
+  urlCache[path]={url:r.data.signedUrl,exp:Date.now()+3000000};
+  return r.data.signedUrl;
+}
+async function startAudio(key,src,o){
+  stopPlay();
+  const a=new Audio();a.preload='auto';a.src=src;
+  try{a.playbackRate=Math.max(0.5,Math.min(2,S.rate))}catch(e){}
+  const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now()};
+  np=st;
+  a.onended=()=>{if(np===st)finish()};
+  a.onerror=()=>{if(np===st){stopPlay();toast("Lecture du vocal impossible.")}};
+  a.ontimeupdate=()=>{
+    if(np!==st)return;
+    const d=isFinite(a.duration)&&a.duration>0?a.duration:(o.dur||0);
+    if(d)st.prog=Math.min(1,a.currentTime/d);
+  };
+  st.timer=setInterval(()=>{if(np===st)paintKey(key)},80);
+  paintKey(key);
+  try{await a.play()}catch(e){if(np===st){stopPlay();toast("Lecture du vocal impossible.")}}
+}
+function playSpec(key,sp,after){
+  if(sp.audio){
+    const go=src=>{startAudio(key,src,{dur:sp.dur,after:after})};
+    if(/^blob:/.test(sp.audio)){go(sp.audio);return}
+    audioUrl(sp.audio).then(go).catch(()=>{
+      if(sp.text)startPlay(key,{text:sp.text,pitch:sp.pitch,gender:sp.gender,after:after});
+      else toast("Vocal indisponible.");
+    });
+    return;
+  }
+  startPlay(key,Object.assign({after:after},sp));
 }
 
 /* ---------- Toast, feuilles, éclats ---------- */
@@ -817,31 +914,56 @@ function burst(el,emoji){
 
 /* ---------- Enregistrement vocal (micro réel si possible, sinon démo) ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const R={on:false,rec:null,text:'',demo:false,t0:0,iv:0,dv:0,gv:0,got:false,ui:null};
+const R={on:false,rec:null,text:'',demo:false,t0:0,iv:0,dv:0,gv:0,got:false,ui:null,mr:null,stream:null,chunks:[],mime:'',audioFail:false,srFail:false};
 function recClear(){clearInterval(R.iv);clearInterval(R.dv);clearTimeout(R.gv)}
+function recRelease(){
+  try{if(R.mr){R.mr.ondataavailable=null;R.mr.onstop=null;if(R.mr.state!=='inactive')R.mr.stop()}}catch(e){}
+  try{if(R.stream)R.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  R.mr=null;R.stream=null;
+}
 function recKill(){
   recClear();
   try{if(R.rec){R.rec.onend=null;R.rec.onerror=null;R.rec.abort()}}catch(e){}
-  R.rec=null;R.on=false;
+  R.rec=null;R.on=false;recRelease();R.chunks=[];
 }
 function recTick(){
   const s=Math.floor((Date.now()-R.t0)/1000);
   if(R.ui&&R.ui.tick)R.ui.tick(s);
   if(s>=60)recStop();
 }
-function recDemo(){
-  if(R.demo||!R.on)return;
-  R.demo=true;
-  const ui=R.ui;
-  recKill();
-  toast("Dictée indisponible : autorise le micro, ou utilise Chrome ou Safari.");
-  if(ui&&ui.done)ui.done({text:'',dur:0});
+function recFailCheck(){
+  if(!R.on||R.demo)return;
+  if(R.audioFail&&R.srFail){
+    R.demo=true;
+    const ui=R.ui;
+    recKill();
+    toast("Micro indisponible : autorise-le dans ton navigateur (Chrome ou Safari).");
+    if(ui&&ui.done)ui.done({text:'',dur:0,blob:null});
+  }
+}
+function pickMime(){
+  if(!window.MediaRecorder||!MediaRecorder.isTypeSupported)return '';
+  const c=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+  for(let i=0;i<c.length;i++){try{if(MediaRecorder.isTypeSupported(c[i]))return c[i]}catch(e){}}
+  return '';
 }
 function recStart(ui){
   recKill();
-  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();
+  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();R.chunks=[];R.mime='';R.audioFail=false;R.srFail=false;
   R.iv=setInterval(recTick,250);recTick();
-  let ok=false;
+  /* 1. enregistrement de la vraie voix */
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder){
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}).then(stream=>{
+      if(!R.on||R.ui!==ui){stream.getTracks().forEach(t=>t.stop());return}
+      try{
+        const mt=pickMime(),mr=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:48000}:{audioBitsPerSecond:48000});
+        R.stream=stream;R.mime=(mr.mimeType||mt||'audio/webm').split(';')[0];
+        mr.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data)};
+        mr.start(500);R.mr=mr;R.got=true;
+      }catch(e){stream.getTracks().forEach(t=>t.stop());R.audioFail=true;recFailCheck()}
+    }).catch(()=>{R.audioFail=true;recFailCheck()});
+  }else{R.audioFail=true}
+  /* 2. transcription en direct */
   if(SR){
     try{
       const r=new SR();R.rec=r;r.lang='fr-FR';r.continuous=true;r.interimResults=true;
@@ -852,20 +974,30 @@ function recStart(ui){
         for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript+' ';else it+=x[0].transcript}
         R.text=(fin+it).trim();if(R.ui&&R.ui.live)R.ui.live(R.text);
       };
-      r.onerror=e=>{if(R.on&&!R.demo&&e&&/not-allowed|service-not-allowed|audio-capture|language-not-supported/.test(e.error))recDemo()};
-      r.start();ok=true;
-    }catch(e){ok=false}
-  }
-  if(!ok)recDemo();
-  else R.gv=setTimeout(()=>{if(R.on&&!R.got&&!R.demo)recDemo()},20000);
+      r.onerror=e=>{if(R.on&&!R.demo&&e&&/not-allowed|service-not-allowed|audio-capture|language-not-supported/.test(e.error)){R.srFail=true;recFailCheck()}};
+      r.start();
+    }catch(e){R.srFail=true}
+  }else R.srFail=true;
+  recFailCheck();
+  if(R.on)R.gv=setTimeout(()=>{if(R.on&&!R.got&&!R.demo){R.audioFail=true;R.srFail=true;recFailCheck()}},20000);
 }
 function recStop(){
   if(!R.on)return;
   recClear();
-  const ui=R.ui,dur=Math.max(1,Math.round((Date.now()-R.t0)/1000));let done=false;
-  const fin=()=>{if(done)return;done=true;R.on=false;R.rec=null;if(ui&&ui.done)ui.done({text:R.text.trim(),dur:dur})};
-  if(R.rec&&!R.demo){R.rec.onend=fin;R.rec.onerror=null;try{R.rec.stop()}catch(e){fin()}setTimeout(fin,1100)}
-  else fin();
+  const ui=R.ui,dur=Math.max(1,Math.round((Date.now()-R.t0)/1000));
+  let done=false;
+  const pend={sr:!!R.rec,mr:!!(R.mr&&R.mr.state!=='inactive')};
+  const fin=()=>{
+    if(done||pend.sr||pend.mr)return;
+    done=true;
+    const blob=R.chunks.length?new Blob(R.chunks,{type:R.mime||'audio/webm'}):null,mime=R.mime||'audio/webm',text=R.text.trim();
+    R.on=false;R.rec=null;recRelease();R.chunks=[];
+    if(ui&&ui.done)ui.done({text:text,dur:dur,blob:blob,mime:mime});
+  };
+  if(pend.sr){R.rec.onend=()=>{pend.sr=false;fin()};R.rec.onerror=null;try{R.rec.stop()}catch(e){pend.sr=false}}
+  if(pend.mr){R.mr.onstop=()=>{pend.mr=false;fin()};try{R.mr.stop()}catch(e){pend.mr=false}}
+  setTimeout(()=>{pend.sr=false;pend.mr=false;fin()},1600);
+  fin();
 }
 /* ---------- Navigation ---------- */
 let view='chats',cur=null,replyTo=null,typing=null,chatRec=false,chatDraft='',QR=false,MM=null,NS=new Set(),gname='';
@@ -1079,9 +1211,17 @@ function sendText(){
   chatDraft='';replyTo=null;QR=false;
   renderComposer();renderReplyBar();$('#quickrow').hidden=true;renderMsgs(true);
 }
+const extOf=mime=>/mp4|m4a|aac/.test(mime)?'m4a':(/ogg/.test(mime)?'ogg':'webm');
 function sendVoice(r){
   const c=conv(cur);if(!c)return;
-  addMsg(c,{f:'me',k:'voice',text:r.text,dur:r.dur,re:replyTo||undefined});
+  const id=uuid(),m={id:id,f:'me',k:'voice',text:r.text||'Vocal (transcription indisponible)',dur:r.dur,re:replyTo||undefined};
+  let pre=null;
+  if(r.blob){
+    const path=c.id+'/'+id+'.'+extOf(r.mime);
+    m.audio=path;m.localAudio=URL.createObjectURL(r.blob);
+    pre=sb.storage.from('voices').upload(path,r.blob,{contentType:r.mime||'audio/webm'}).then(x=>{if(x.error)throw x.error});
+  }
+  addMsg(c,m,pre);
   replyTo=null;renderComposer();renderReplyBar();renderMsgs(true);
 }
 function startChatRec(){
@@ -1089,11 +1229,10 @@ function startChatRec(){
   recStart({
     live:t=>{const e=$('#cLive');if(e)e.textContent=t||"Je t'écoute…"},
     tick:s=>{const e=$('#cTimer');if(e)e.textContent=fmt(s)+' / 1:00'},
-    demo:()=>toast("Démonstration : micro indisponible ici, texte simulé."),
     done:r=>{
       if(!chatRec)return;
       chatRec=false;
-      if(!r.text){renderComposer();toast("Je n'ai rien entendu, réessaie.");return}
+      if(!r.text&&!r.blob){renderComposer();toast("Je n'ai rien entendu, réessaie.");return}
       sendVoice(r);
     }
   });
@@ -1145,7 +1284,7 @@ function listenAll(){
   const next=()=>{
     const m=q.shift();if(!m||view!=='chat')return;
     const el=document.querySelector('[data-key="m:'+c.id+':'+m.id+'"]');if(el)el.scrollIntoView({block:'center'});
-    startPlay('m:'+c.id+':'+m.id,{text:m.text,pitch:userOf(m.f).pitch,after:next});
+    playSpec('m:'+c.id+':'+m.id,speechFor('m:'+c.id+':'+m.id),next);
   };
   next();
 }
@@ -1446,7 +1585,7 @@ async function inlineAI(kind,param){
     save();renderMsgs();syncMeta(m,kind,m[kind]);
     if(kind==='sty'||kind==='tr'){
       const lc=kind==='tr'?(LANGS.find(l=>l[0]===param)||[0,'fr-FR'])[1]:'fr-FR';
-      startPlay('n:'+c.id+':'+m.id+':'+kind,{text:m[kind].text,pitch:userOf(m.f).pitch,lang:lc});
+      startPlay('n:'+c.id+':'+m.id+':'+kind,{text:m[kind].text,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender,lang:lc});
     }
   }catch(e){delete m[kind];renderMsgs();if(!e||e.code!=='cancelled')toast(errCopy(e&&e.code))}
 }
@@ -1552,7 +1691,7 @@ function createHTML(){
     }else{
       body='<div class="stage left"><div class="player" data-key="d:v"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars('draft'+draft.text)+'</div><span class="dur">'+ico('mic',14)+fmt(draft.dur)+'</span></div>'+
         '<label class="lbl" for="dtx">Transcription (tu peux la corriger)</label><textarea id="dtx" class="ta" maxlength="400">'+esc(draft.text)+'</textarea>'+
-        '<div class="lbl">Effet de voix</div><div class="chips">'+[[1,'Naturelle'],[1.6,'Aiguë'],[0.6,'Grave']].map(x=>'<button class="chip" data-act="fx" data-v="'+x[0]+'" aria-pressed="'+(draft.fx===x[0])+'">'+x[1]+'</button>').join('')+'</div>'+
+        '<p class="small" style="margin:0">C\'est ta vraie voix qui sera publiée, avec la transcription à côté.</p>'+
         '<div class="row"><button class="btn ghost" data-act="redo">'+ico('redo',18)+'Refaire</button><button class="btn primary" data-act="publish">Publier</button></div></div>';
     }
   }else{
@@ -1569,11 +1708,10 @@ function startCreateRec(){
   recStart({
     live:t=>{const e=$('#livetx');if(e){e.textContent=t||"Je t'écoute…";e.classList.toggle('idle',!t)}},
     tick:s=>{const e=$('#timer');if(e)e.textContent=fmt(s)+' / 1:00'},
-    demo:()=>{const b=$('#demo-badge');if(b)b.hidden=false},
     done:r=>{
       if(view!=='create'||CS.stage!=='rec')return;
-      if(!r.text){CS.stage='idle';renderCreate();toast("Je n'ai rien entendu, réessaie.");return}
-      draft={text:r.text,dur:r.dur,fx:1};CS.stage='review';renderCreate();
+      if(!r.text&&!r.blob){CS.stage='idle';renderCreate();toast("Je n'ai rien entendu, réessaie.");return}
+      draft={text:r.text||'Vocal sans transcription.',dur:r.dur,blob:r.blob,mime:r.mime,url:r.blob?URL.createObjectURL(r.blob):null};CS.stage='review';renderCreate();
     }
   });
 }
@@ -1581,10 +1719,16 @@ function publish(type){
   const text=type==='voice'?(draft?draft.text.trim():''):draftT.trim();
   if(!text){toast(type==='voice'?'La transcription est vide.':"Écris d'abord quelque chose.");return}
   stopPlay();
-  const id=uuid(),dur=type==='voice'?draft.dur:null,fx=type==='voice'?draft.fx:1;
+  const id=uuid(),dur=type==='voice'?draft.dur:null,fx=1;
   const p={id:id,u:'me',type:type,t:Date.now(),text:text,rx:{},my:[],cm:[],open:false,dur:dur,fx:fx};
+  let pre=Promise.resolve(null);
+  if(type==='voice'&&draft.blob){
+    const path='posts/'+myId+'/'+id+'.'+extOf(draft.mime);
+    p.audio=path;p.localAudio=draft.url;
+    pre=sb.storage.from('voices').upload(path,draft.blob,{contentType:draft.mime||'audio/webm'}).then(x=>{if(x.error)throw x.error}).then(()=>path,()=>{p.audio=null;p.localAudio=null;toast("Ton audio n'a pas pu être envoyé : publication en texte.");return null});
+  }
   posts.unshift(p);
-  sb.from('posts').insert({id:id,author:myId,kind:type,body:text.slice(0,400),dur:dur,fx:fx}).then(r=>{
+  pre.then(path=>sb.from('posts').insert({id:id,author:myId,kind:type,body:text.slice(0,400),dur:dur,fx:fx,audio:path})).then(r=>{
     if(r.error){posts=posts.filter(x=>x.id!==id);toast("Publication refusée : "+r.error.message);if(view==='feed')renderFeed()}
   });
   CS.stage='idle';draft=null;if(type==='text')draftT='';
@@ -1612,7 +1756,7 @@ function renderMe(){
     g('Yeux',EYES.map(x=>opt('eyes',x[0],x[1],avatar(Object.assign({},me.a,{eyes:x[0]}),44))).join(''))+
     g('Bouche',MOUTHS.map(x=>opt('mouth',x[0],x[1],avatar(Object.assign({},me.a,{mouth:x[0]}),44))).join(''))+
     g('Accessoire',ACCS.map(x=>opt('acc',x[0],x[1],avatar(Object.assign({},me.a,{acc:x[0]}),44))).join(''))+
-    '<div class="group"><div class="lbl">Ta voix de lecture</div><div class="chips">'+[['grave','Grave'],['normale','Normale'],['aigue','Aiguë']].map(x=>'<button class="chip" data-act="voice" data-v="'+x[0]+'" aria-pressed="'+(me.voice===x[0])+'">'+x[1]+'</button>').join('')+'</div>'+
+    '<div class="group"><div class="lbl">Voix de synthèse (quand ton texte est lu à voix haute)</div><p class="small" style="margin:0">Tes vocaux, eux, gardent ta vraie voix.</p><div class="chips">'+VOICES.map(x=>'<button class="chip" data-act="voice" data-v="'+x.id+'" aria-pressed="'+(me.voice===x.id)+'">'+x.label+'</button>').join('')+'</div>'+
     '<div data-key="v:test"><button class="btn ghost plb" data-act="play"><span class="pi" data-sz="18">'+ico('play',18)+'</span><span>Écouter ma voix</span></button></div></div></div>';
   h+='<div class="stage left"><h2 class="h3">IA, roasts et sécurité</h2>'+
     sw('aiOn','Fonctions IA','Résumés, roasts, tribunal… La conversation concernée est envoyée à Claude, seulement quand tu lances une fonction.')+
@@ -1642,19 +1786,19 @@ A.play=t=>{
   const key=holder.dataset.key;
   if(np&&np.key===key){stopPlay();return}
   const sp=speechFor(key);
-  if(!sp.text||!String(sp.text).trim()){toast("Rien à lire pour l'instant.");return}
-  startPlay(key,sp);
+  if(!sp.audio&&(!sp.text||!String(sp.text).trim())){toast("Rien à lire pour l'instant.");return}
+  playSpec(key,sp);
 };
 function speechFor(key){
   const p=key.split(':'),k=p[0],a=p[1],b=p[2];
-  if(k==='p'){const po=feedPost(a);return {text:po.text,pitch:userOf(po.u).pitch*(po.fx||1)}}
-  if(k==='c'){const pc=feedPost(a),c=pc.cm[+b];return {text:c.text,pitch:userOf(c.u).pitch}}
-  if(k==='m'){const c=conv(a),m=c.msgs.find(x=>x.id===b);return {text:m.text,pitch:m.f==='me'?pitchOf(me.voice):userOf(m.f).pitch}}
-  if(k==='n'){const c=conv(a),m=c.msgs.find(x=>x.id===b),kind=p[3],d=m[kind];return {text:d.text,pitch:userOf(m.f).pitch,lang:kind==='tr'?(LANGS.find(l=>l[0]===d.lang)||[0,'fr-FR'])[1]:'fr-FR'}}
+  if(k==='p'){const po=feedPost(a),u=userOf(po.u);return {text:po.text,pitch:u.pitch,gender:u.gender,audio:po.type==='voice'?(po.localAudio||po.audio):null,dur:po.dur}}
+  if(k==='c'){const pc=feedPost(a),c=pc.cm[+b],u=userOf(c.u);return {text:c.text,pitch:u.pitch,gender:u.gender}}
+  if(k==='m'){const c=conv(a),m=c.msgs.find(x=>x.id===b),u=userOf(m.f);return {text:m.text,pitch:u.pitch,gender:u.gender,audio:m.k==='voice'?(m.localAudio||m.audio):null,dur:m.dur}}
+  if(k==='n'){const c=conv(a),m=c.msgs.find(x=>x.id===b),kind=p[3],d=m[kind];return {text:d.text,pitch:userOf(m.f).pitch,gender:userOf(m.f).gender,lang:kind==='tr'?(LANGS.find(l=>l[0]===d.lang)||[0,'fr-FR'])[1]:'fr-FR'}}
   if(k==='r'){return {text:AIR.spec.speak(AIR.data),pitch:AIR.spec.pitch||1,rateMul:AIR.spec.rateMul||1}}
-  if(k==='d'&&a==='v')return {text:draft?draft.text:'',pitch:pitchOf(me.voice)*(draft?draft.fx:1)};
-  if(k==='d'&&a==='t')return {text:draftT,pitch:pitchOf(me.voice)};
-  return {text:"Salut, c'est moi ! Voilà ma voix.",pitch:pitchOf(me.voice)};
+  if(k==='d'&&a==='v')return {text:draft?draft.text:'',pitch:pitchOf(me.voice),gender:genderOf(me.voice),audio:draft&&draft.url,dur:draft&&draft.dur};
+  if(k==='d'&&a==='t')return {text:draftT,pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
+  return {text:"Salut, je suis ta voix de lecture. Je lis tes textes à voix haute.",pitch:pitchOf(me.voice),gender:genderOf(me.voice)};
 }
 
 /* Discussions */
@@ -1672,8 +1816,36 @@ A.cstart=async t=>{
   if(!c){t.disabled=false;toast('Discussion introuvable');return}
   openChat(c.id);
 };
-A.invite=()=>copyText(inviteLink(),'Lien de Pépie copié : envoie-le à tes amis');
-A.copyinv=()=>copyText(inviteLink(),'Lien de Pépie copié : envoie-le à tes amis');
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const inviteMsg=()=>"Rejoins-moi sur Pépie, la messagerie où les vocaux s'écrivent tout seuls et où les textes se font écouter ! Mon identifiant : "+(me.handle?'@'+me.handle:'')+" "+inviteLink();
+function inviteHTML(){
+  const row=(act,ic,l,s)=>'<button class="ctact" data-act="'+act+'"><span>'+ico(ic,20)+'</span><span class="cinfo"><b style="font-size:15px">'+l+'</b>'+(s?'<span>'+s+'</span>':'')+'</span></button>';
+  const canC=!!(navigator.contacts&&navigator.contacts.select);
+  return '<div class="sh-head"><b>Inviter des amis</b><button class="x" data-act="close" aria-label="Fermer">'+ico('close',18)+'</button></div>'+
+    '<div class="list" style="gap:8px">'+
+    (canC?row('invcontacts','user','Choisir dans mes contacts','Envoie un SMS à ceux que tu sélectionnes'):'')+
+    (navigator.share?row('invshare','link','Partager le lien…','Messages, WhatsApp… tu choisis tes contacts dans la fenêtre qui s\'ouvre'):'')+
+    row('invsms','comment','Envoyer par SMS','Ouvre ta messagerie avec le message prêt')+
+    row('invwa','comment','Envoyer par WhatsApp','')+
+    row('invcopy','copy','Copier le lien','')+'</div>'+
+    (canC?'':'<p class="small" style="margin:0">'+(isIOS?'Sur iPhone, le navigateur ne donne pas accès au carnet d\'adresses : utilise « Partager le lien » et choisis tes contacts dans la fenêtre de partage.':'Ton navigateur ne permet pas de lire le carnet d\'adresses : utilise le partage ou le SMS.')+'</p>');
+}
+A.invite=()=>openSheet(inviteHTML());
+A.copyinv=()=>openSheet(inviteHTML());
+A.invcopy=()=>{closeSheet();copyText(inviteMsg(),'Message d\'invitation copié')};
+A.invshare=async()=>{try{await navigator.share({title:'Pépie',text:inviteMsg().replace(inviteLink(),'').trim(),url:inviteLink()});closeSheet()}catch(e){}};
+A.invsms=()=>{closeSheet();location.href='sms:'+(isIOS?'&':'?')+'body='+encodeURIComponent(inviteMsg())};
+A.invwa=()=>{closeSheet();window.open('https://wa.me/?text='+encodeURIComponent(inviteMsg()),'_blank')};
+A.invcontacts=async()=>{
+  try{
+    const list=await navigator.contacts.select(['name','tel'],{multiple:true});
+    const nums=[];
+    list.forEach(c=>{const t=(c.tel||[])[0];if(t)nums.push(String(t).replace(/[\s().-]/g,''))});
+    if(!nums.length){toast('Aucun numéro choisi');return}
+    closeSheet();
+    location.href='sms:'+nums.join(',')+(isIOS?'&':'?')+'body='+encodeURIComponent(inviteMsg());
+  }catch(e){toast('Contacts indisponibles sur cet appareil')}
+};
 A.logout=async()=>{await sb.auth.signOut();location.reload()};
 A.authmode=t=>{authMode=t.dataset.m;authErr='';renderOnboard()};
 
@@ -1817,7 +1989,7 @@ A.av=t=>{me.a[t.dataset.k]=t.dataset.v;save();keepScroll(renderMe)};
 A.voice=t=>{
   me.voice=t.dataset.v;save();
   document.querySelectorAll('[data-act="voice"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===me.voice)));
-  startPlay('v:test',{text:"Salut, c'est moi ! Voilà ma voix.",pitch:pitchOf(me.voice)});
+  startPlay('v:test',{text:"Salut, je suis ta voix de lecture. Je lis tes textes à voix haute.",pitch:pitchOf(me.voice),gender:genderOf(me.voice)});
 };
 A.tog=t=>{
   const k=t.dataset.k;me[k]=!me[k];
