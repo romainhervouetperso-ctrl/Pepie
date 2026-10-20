@@ -1451,9 +1451,9 @@ function renderOnboard(){
     '<label class="lbl" for="obhandle">Identifiant (pour te retrouver)</label><input id="obhandle" class="inp" maxlength="20" placeholder="ex : camille.v" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username">'+
     '<label class="lbl" for="obpass">Mot de passe</label><input id="obpass" class="inp" type="password" minlength="6" maxlength="72" placeholder="6 caractères minimum" autocomplete="'+(su?'new-password':'current-password')+'">'+
     (su?'<label class="lbl" for="obbirth">Date de naissance</label><input id="obbirth" class="inp" type="date" max="'+new Date().toISOString().slice(0,10)+'" min="1900-01-01" autocomplete="bday"><p class="small" style="margin:0">Sert uniquement à vérifier ton âge (15 ans minimum, 18 ans pour le niveau Hard-core des roasts). Elle n\'est pas conservée.</p>'+
-      '<p class="small" style="margin:0">En créant un compte, tu confirmes avoir 15 ans ou plus et tu acceptes la <a href="confidentialite.html" target="_blank" rel="noopener">politique de confidentialité</a>.</p><p class="small" style="margin:0">Pas d\'adresse e-mail demandée : note bien ton mot de passe, il ne pourra pas être réinitialisé. Les résumés et roasts sont calculés sur ton appareil, quand tu les lances.</p>':'')+
+      '<p class="small" style="margin:0">En créant un compte, tu confirmes avoir 15 ans ou plus et tu acceptes la <a href="confidentialite.html" target="_blank" rel="noopener">politique de confidentialité</a>.</p><p class="small" style="margin:0">Pas d\'adresse e-mail demandée : ton téléphone peut retenir ton mot de passe, et tu pourras activer une récupération (question perso + un ami garant) dans Moi. Les résumés et roasts sont calculés sur ton appareil, quand tu les lances.</p>':'')+
     '<p class="small" id="autherr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700"'+(authErr?'':' hidden')+'>'+esc(authErr)+'</p>'+
-    '<button class="btn primary w100" type="submit"'+(authBusy?' disabled':'')+'>'+(authBusy?'Un instant…':(su?'Créer mon compte':'Me connecter'))+'</button></div></form>';
+    '<button class="btn primary w100" type="submit"'+(authBusy?' disabled':'')+'>'+(authBusy?'Un instant…':(su?'Créer mon compte':'Me connecter'))+'</button>'+(su?'':'<button type="button" class="btn ghost w100" data-act="recopen">Mot de passe oublié ?</button>')+'</div></form>';
 }
 
 /* ---------- Liste des discussions ---------- */
@@ -2188,6 +2188,7 @@ function renderMe(){
     '<div class="group"><div class="lbl">Niveau maximum que j\'accepte</div><div class="chips">'+LVO.map(k=>'<button class="chip" data-act="lvmax" data-v="'+k+'" aria-pressed="'+(minLv(me.maxLevel,cap)===k)+'"'+(LVO.indexOf(k)>LVO.indexOf(cap)?' disabled':'')+'>'+LV[k].label+'</button>').join('')+'</div></div>'+
     '<div class="group"><div class="lbl">Sujets interdits</div><div class="chips"><button class="chip" aria-pressed="true" disabled>Physique (toujours)</button>'+TOPICS.map(t=>'<button class="chip" data-act="topic" data-t="'+t+'" aria-pressed="'+(me.blocked.indexOf(t)>=0)+'">'+t+'</button>').join('')+'</div></div>'+
     '<p class="small" style="margin:0">Les roasts ne visent jamais le physique, l\'origine, la religion, la santé, l\'orientation, ni aucune menace. Si une conversation montre quelqu\'un qui va mal, l\'IA n\'envoie pas de roast.</p></div>';
+  h+=secHTML();
   h+='<div class="stage left"><button class="btn ghost w100" data-act="copyinv">'+ico('link',16)+'Inviter des amis (copier le lien)</button><button class="btn ghost w100" data-act="logout">Me déconnecter</button></div>';
   h+='<div class="stage left"><h2 class="h3">Ma boîte à outils</h2><div class="mgrid">'+
     [['badges','🏆','Succès','Badges et accessoires à débloquer'],['recap','📅','Mon mois','Ta rétrospective à partager'],['favs','⭐','Favoris','Tes vocaux gardés'],['books','📖','Événements','Livres d\'or, albums photo + vocaux'],['blocked','🚫','Bloqués','Gérer les personnes bloquées'],['reader','🔊','Lecteur de texte','Lis un long texte à voix haute'],['statusgo','💬','Mon statut vocal','10 secondes, 24 h']].map(x=>'<button class="mcard" data-act="'+x[0]+'"><span class="mi" style="background:var(--yellow,#FFA98A)">'+x[1]+'</span><b>'+x[2]+'</b><span class="s">'+x[3]+'</span></button>').join('')+'</div></div>';
@@ -2474,6 +2475,7 @@ document.addEventListener('submit',ev=>{
           await signUp(handle,pw,nm,obAvatar||me.a,birth);
         }
         const u=await logIn(handle,pw);
+        storeCred(handle,pw);
         authBusy=false;
         await startApp(u.id);
       }catch(e){
@@ -3134,6 +3136,7 @@ function renderChats(){
     '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(avMood('me'),52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
     fr.map(f=>{const a=frAns(f.id);const sl=statusLive(U[f.id]);return '<button class="story" role="listitem" data-act="'+(sl?'stplay':(a?'storyplay':'open'))+'" data-id="'+(sl?f.id:(a?a.id:f.cid))+'" data-cid="'+f.cid+'"><span class="ring'+((a||sl)?' on':'')+'"><span class="av">'+avatar(avMood(f.id),52)+'</span>'+(sl?'<span class="plus" style="background:var(--pink,#FF8FA0)">💬</span>':'')+'</span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
     '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
+  html+=recCardHTML();
   html+=startCardHTML();
   html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans Aujourd\'hui':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
   html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div>';
@@ -3717,6 +3720,8 @@ async function tick10(){
     }
   }
   if(pollN%5===0)await syncMembership();
+  if(!RCV.loaded)loadRecovery();
+  if(pollN%2===0)await loadRecReqs();
 }
 
 /* ---------- « En train d'écrire / d'enregistrer » ---------- */
@@ -4256,7 +4261,8 @@ function startSteps(){
     {done:vo,ico:'🎤',t:'Envoie ton premier vocal',act:convs.length?'sgvoice':'newchat'},
     {done:convs.length>0,ico:'👋',t:'Invite un ami (ou ouvre une discussion)',act:convs.length?'newchat':'invite'},
     {done:answeredToday()||(S.dn||0)>0,ico:'☀️',t:'Réponds au vocal du jour',act:'dailygo'},
-    {done:!!S.push,ico:'🔔',t:'Active les notifications',act:'pushTog'}
+    {done:!!S.push,ico:'🔔',t:'Active les notifications',act:'pushTog'},
+    {done:!!RCV.setup||!RCV.loaded,ico:'🔑',t:'Protège ton compte (récupération)',act:'recset'}
   ];
 }
 function startCardHTML(){
@@ -4290,6 +4296,245 @@ function buzzHTML(){
   if(!l.length)return '';
   return '<div class="sect">Ça bouge dans tes discussions</div><div class="list" style="gap:8px">'+l.map(c=>'<button class="ctact" data-act="open" data-id="'+c.id+'"><span class="av">'+convAv(c,36)+'</span><span class="cinfo"><b style="font-size:14px">'+esc(convTitle(c))+'</b><span>'+c.unread+' nouveau'+(c.unread>1?'x':'')+' · '+esc(snip(previewOf(c),50))+'</span></span></button>').join('')+'</div>';
 }
+/* ---------- Sécurité : mot de passe, récupération (question perso + ami garant) ---------- */
+const RCV={loaded:false,setup:null,reqs:[],busy:false};
+const REC={step:0,handle:'',question:'',rid:'',tok:'',pw:'',err:'',timer:0};
+const RS={q:'',a:'',f:new Set(),err:'',busy:false};
+const RQ_IDEAS=['Le nom de ma première école','Le surnom que me donnait mon grand-parent','La rue de mon enfance','Mon premier concert','Le nom de mon premier animal'];
+
+function storeCred(handle,pw){
+  try{if(window.PasswordCredential&&navigator.credentials&&navigator.credentials.store){navigator.credentials.store(new window.PasswordCredential({id:handle,password:pw,name:handle}))}}catch(e){}
+}
+async function recCall(body){
+  const r=await fetch(SB_URL+'/functions/v1/recovery',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify(body)});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(j.error||'Erreur, réessaie.');
+  return j;
+}
+async function fnErr(r,def){
+  let msg=def;try{const j=await r.error.context.json();if(j&&j.error)msg=j.error}catch(e){}
+  return msg;
+}
+
+/* --- état de ma récupération --- */
+async function loadRecovery(){
+  if(RCV.busy)return;RCV.busy=true;
+  try{
+    const r=await sb.rpc('my_recovery');
+    RCV.setup=(r&&r.data&&r.data.question)?r.data:null;
+    RCV.loaded=true;
+    if(view==='me')keepScroll(renderMe);
+  }catch(e){}
+  RCV.busy=false;
+}
+const secHTML=()=>'<div class="stage left"><h2 class="h3">Sécurité du compte</h2>'+
+  '<button class="btn ghost w100" data-act="pwchg">Changer mon mot de passe</button>'+
+  '<div class="srow"><div><b>Récupération du compte</b><p class="small">'+(RCV.setup
+    ?'Activée. Si tu oublies ton mot de passe : ta question perso + la confirmation d\'un de tes amis garants. Question : « '+esc(RCV.setup.question)+' »'
+    :(RCV.loaded?'Pas encore activée. Sans elle, un mot de passe oublié = compte perdu.':'Chargement…'))+'</p></div></div>'+
+  '<button class="btn '+(RCV.setup?'ghost':'primary')+' w100" data-act="recset">'+(RCV.setup?'Modifier ma récupération':'Activer la récupération')+'</button>'+
+  (RCV.setup?'<button class="btn ghost w100" data-act="recclr">Désactiver la récupération</button>':'')+
+  '</div>';
+
+/* --- changer mon mot de passe --- */
+A.pwchg=()=>{
+  openSheet(sheetHead('Changer mon mot de passe')+
+    '<label class="lbl" for="pwold">Mot de passe actuel</label><input id="pwold" class="inp" type="password" autocomplete="current-password" maxlength="72">'+
+    '<label class="lbl" for="pwnew">Nouveau mot de passe</label><input id="pwnew" class="inp" type="password" autocomplete="new-password" minlength="6" maxlength="72" placeholder="6 caractères minimum">'+
+    '<p class="small" id="pwerr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700" hidden></p>'+
+    '<button class="btn primary w100" data-act="pwgo">Enregistrer</button>');
+};
+A.pwgo=async()=>{
+  const o=$('#pwold').value||'',n=$('#pwnew').value||'',er=$('#pwerr');
+  const bad=m=>{er.textContent=m;er.hidden=false};
+  if(n.length<6)return bad('Nouveau mot de passe : 6 caractères minimum.');
+  if(n===o)return bad('Choisis un mot de passe différent de l\'actuel.');
+  try{
+    const h=userOf('me').handle;
+    await logIn(h,o);
+    const r=await sb.auth.updateUser({password:n});
+    if(r.error)throw new Error(r.error.message);
+    storeCred(h,n);
+    closeSheet();toast('Mot de passe changé ✅');
+  }catch(e){bad(/incorrect/i.test(e.message)?'Mot de passe actuel incorrect.':(e.message||'Erreur'))}
+};
+
+/* --- configurer la récupération --- */
+function rsFriendsHTML(){
+  if(!friendsLoaded)return '<p class="empty">Chargement…</p>';
+  if(!FRIENDS.length)return '<p class="empty">Aucun ami sur Pépie pour l\'instant. Invite quelqu\'un de confiance, puis reviens ici.</p>';
+  return FRIENDS.map(id=>{const u=U[id],on=RS.f.has(id);
+    return '<button class="ctact" data-act="rsfr" data-id="'+id+'" aria-pressed="'+on+'"><span class="av">'+avatar(u.a,36)+'</span><span class="cinfo"><b style="font-size:15px">'+esc(u.name)+'</b><span>'+esc(u.handle)+'</span></span>'+(on?'<span aria-hidden="true">✅</span>':'')+'</button>'}).join('');
+}
+function rsHTML(){
+  return sheetHead('Récupération du compte')+
+    '<p class="small" style="margin:0">Si tu perds ton mot de passe : tu réponds à ta question perso, puis <b>un de tes amis garants</b> confirme que c\'est bien toi. Aucun e-mail, rien de payant.</p>'+
+    '<label class="lbl" for="rq">Ta question perso</label><input id="rq" class="inp" maxlength="140" placeholder="Une question dont toi seul connais la réponse" value="'+esc(RS.q)+'" autocomplete="off">'+
+    '<div class="chips">'+RQ_IDEAS.map(x=>'<button class="chip" data-act="rqidea" data-q="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>'+
+    '<label class="lbl" for="ra">Ta réponse</label><input id="ra" class="inp" maxlength="80" placeholder="Pas de majuscules ni d\'accents à retenir" value="'+esc(RS.a)+'" autocomplete="off" autocapitalize="none" spellcheck="false">'+
+    '<p class="small" style="margin:0">Évite une réponse que tes proches (ou les réseaux sociaux) peuvent deviner. Elle est stockée brouillée : même moi je ne peux pas la relire.</p>'+
+    '<div class="lbl">Tes amis garants (1 à 3, de vraies personnes de confiance)</div>'+
+    '<div class="list" style="gap:8px" id="rflist">'+rsFriendsHTML()+'</div>'+
+    '<p class="small" id="rserr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700"'+(RS.err?'':' hidden')+'>'+esc(RS.err)+'</p>'+
+    '<button class="btn primary w100" data-act="rsgo"'+(RS.busy?' disabled':'')+'>'+(RS.busy?'Un instant…':'Enregistrer')+'</button>';
+}
+A.recset=async()=>{
+  RS.q=RCV.setup?RCV.setup.question:'';RS.a='';RS.err='';RS.busy=false;
+  RS.f=new Set(RCV.setup?RCV.setup.friends:[]);
+  if(view!=='me'&&!$('#sheet').hidden)closeSheet();
+  openSheet(rsHTML());
+  if(!friendsLoaded){try{await loadFriends()}catch(e){}}
+  else if(RS.f.size)await ensureProfiles(Array.from(RS.f));
+  const l=$('#rflist');if(l)l.innerHTML=rsFriendsHTML();
+};
+A.rqidea=t=>{RS.q=t.dataset.q;const i=$('#rq');if(i){i.value=RS.q;i.focus()}};
+A.rsfr=t=>{
+  const id=t.dataset.id;
+  if(RS.f.has(id))RS.f.delete(id);
+  else{if(RS.f.size>=3){toast('3 amis garants maximum.');return}RS.f.add(id)}
+  const l=$('#rflist');if(l)l.innerHTML=rsFriendsHTML();
+};
+A.rsgo=async()=>{
+  if(RS.busy)return;
+  RS.q=($('#rq').value||'').trim();RS.a=$('#ra').value||'';
+  const fail=m=>{RS.err=m;RS.busy=false;const e=$('#rserr');if(e){e.textContent=m;e.hidden=false}const b=document.querySelector('[data-act="rsgo"]');if(b){b.disabled=false;b.textContent='Enregistrer'}};
+  if(RS.q.length<3)return fail('Écris ta question (3 caractères minimum).');
+  if(norm(RS.a).length<3)return fail('Réponse trop courte (3 lettres ou chiffres minimum).');
+  if(RS.f.size<1)return fail('Choisis au moins 1 ami garant.');
+  RS.busy=true;RS.err='';
+  const b=document.querySelector('[data-act="rsgo"]');if(b){b.disabled=true;b.textContent='Un instant…'}
+  const r=await sb.functions.invoke('recovery-setup',{body:{question:RS.q,answer:RS.a,friends:Array.from(RS.f)}});
+  if(r.error)return fail(await fnErr(r,'Enregistrement impossible.'));
+  RS.busy=false;RS.a='';
+  RCV.setup={question:RS.q,friends:Array.from(RS.f)};RCV.loaded=true;
+  closeSheet();toast('Récupération activée 🔑');
+  if(view==='me')keepScroll(renderMe);else if(view==='chats')renderChats();
+};
+A.recclr=()=>{
+  openSheet(sheetHead('Désactiver la récupération ?')+'<p class="small" style="margin:0">Si tu oublies ton mot de passe, ton compte sera perdu.</p><button class="btn primary w100" data-act="recclrgo">Désactiver</button><button class="btn ghost w100" data-act="close">Annuler</button>');
+};
+A.recclrgo=async()=>{
+  const r=await sb.functions.invoke('recovery-setup',{body:{action:'clear'}});
+  if(r.error){toast(await fnErr(r,'Impossible pour le moment.'),3500);return}
+  RCV.setup=null;closeSheet();toast('Récupération désactivée.');
+  if(view==='me')keepScroll(renderMe);
+};
+
+/* --- mot de passe oublié (écran de connexion) --- */
+function recErr(){return '<p class="small" id="recerr" role="alert" style="margin:0;color:var(--bad,#c0392b);font-weight:700"'+(REC.err?'':' hidden')+'>'+esc(REC.err)+'</p>'}
+function recHTML(){
+  if(REC.step===1)return sheetHead('Mot de passe oublié')+
+    '<p class="small" style="margin:0">Ça marche si tu avais activé la récupération dans Moi > Sécurité du compte.</p>'+
+    '<label class="lbl" for="rch">Ton identifiant</label><input id="rch" class="inp" maxlength="20" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" value="'+esc(REC.handle)+'">'+
+    recErr()+'<button class="btn primary w100" data-act="recq">Continuer</button>';
+  if(REC.step===2)return sheetHead('Ta question perso')+
+    '<p style="margin:0"><b>« '+esc(REC.question)+' »</b></p>'+
+    '<label class="lbl" for="rca">Ta réponse</label><input id="rca" class="inp" maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false">'+
+    '<label class="lbl" for="rcp">Nouveau mot de passe</label><input id="rcp" class="inp" type="password" minlength="6" maxlength="72" autocomplete="new-password" placeholder="6 caractères minimum">'+
+    recErr()+'<button class="btn primary w100" data-act="recstart">Prévenir mes amis garants</button>';
+  if(REC.step===3)return sheetHead('En attente d\'un ami garant')+
+    '<div id="recwait"><p style="margin:0">Bonne réponse ✅ Une alerte est partie chez tes amis garants.</p>'+
+    '<p class="small" style="margin:0">Appelle ou écris à l\'un d\'eux (hors Pépie) : il doit ouvrir Pépie et confirmer que c\'est bien toi. Garde cet écran ouvert, la suite est automatique. La demande reste valable 24 h.</p></div>'+
+    (REC.pw?'':'<label class="lbl" for="rcp2">Nouveau mot de passe</label><input id="rcp2" class="inp" type="password" minlength="6" maxlength="72" autocomplete="new-password" placeholder="6 caractères minimum">')+
+    recErr()+'<button class="btn ghost w100" data-act="reccheck">Vérifier maintenant</button>';
+  return '';
+}
+A.recopen=()=>{
+  REC.step=1;REC.err='';const h=$('#obhandle');REC.handle=h?(h.value||'').trim().toLowerCase():REC.handle;
+  let s=null;try{s=JSON.parse(localStorage.getItem('pp_rec')||'null')}catch(e){}
+  if(s&&s.rid&&s.tok&&s.h){REC.handle=s.h;REC.rid=s.rid;REC.tok=s.tok;REC.step=3;REC.pw=''}
+  openSheet(recHTML());
+  if(REC.step===3)recPoll();
+};
+const recShow=()=>{setSheet(recHTML())};
+A.recq=async()=>{
+  const h=($('#rch').value||'').trim().toLowerCase();REC.handle=h;REC.err='';
+  if(!h){REC.err='Indique ton identifiant.';return recShow()}
+  try{const j=await recCall({action:'question',handle:h});REC.question=j.question;REC.step=2}
+  catch(e){REC.err=e.message}
+  recShow();
+};
+A.recstart=async()=>{
+  const a=$('#rca').value||'',p=$('#rcp').value||'';REC.err='';
+  if(!a.trim()){REC.err='Écris ta réponse.';return recShow()}
+  if(p.length<6){REC.err='Nouveau mot de passe : 6 caractères minimum.';return recShow()}
+  try{
+    const j=await recCall({action:'start',handle:REC.handle,answer:a});
+    REC.rid=j.rid;REC.tok=j.token;REC.pw=p;REC.step=3;
+    try{localStorage.setItem('pp_rec',JSON.stringify({h:REC.handle,rid:REC.rid,tok:REC.tok}))}catch(e){}
+    recShow();recPoll();return;
+  }catch(e){REC.err=e.message}
+  recShow();
+  const ia=$('#rca');if(ia)ia.value='';
+};
+function recPoll(){
+  clearInterval(REC.timer);
+  REC.timer=setInterval(()=>{if(!$('#recwait')){clearInterval(REC.timer);return}A.reccheck(null,true)},4000);
+}
+A.reccheck=async(t,silent)=>{
+  if(REC.busy)return;
+  REC.busy=true;
+  try{
+    const s=await recCall({action:'status',rid:REC.rid,token:REC.tok});
+    if(s.status==='approved'){
+      let p=REC.pw;
+      if(!p){const i=$('#rcp2');p=i?i.value:'';if(p.length<6){REC.err='Choisis ton nouveau mot de passe (6 caractères minimum).';REC.busy=false;return recShow()}}
+      await recCall({action:'finish',rid:REC.rid,token:REC.tok,newpass:p});
+      clearInterval(REC.timer);
+      try{localStorage.removeItem('pp_rec')}catch(e){}
+      REC.pw='';
+      const u=await logIn(REC.handle,p);
+      storeCred(REC.handle,p);
+      closeSheet();REC.busy=false;
+      await startApp(u.id);
+      toast('Mot de passe changé, te revoilà 🎉',3500);
+      return;
+    }
+    if(s.status==='denied'||s.status==='expired'||s.status==='used'){
+      clearInterval(REC.timer);try{localStorage.removeItem('pp_rec')}catch(e){}
+      REC.err=s.status==='denied'?'Un ami garant a refusé la demande.':'La demande a expiré. Recommence.';REC.step=1;REC.busy=false;return recShow();
+    }
+    if(!silent){REC.err='';toast('Toujours en attente d\'un ami garant…')}
+  }catch(e){if(!silent){REC.err=e.message;recShow()}}
+  REC.busy=false;
+};
+
+/* --- côté ami garant : demandes en attente --- */
+async function loadRecReqs(){
+  if(!RCV.setupChecked)RCV.setupChecked=1;
+  try{
+    const r=await sb.from('recovery_requests').select('id,user_id,created_at').eq('status','pending').gt('expires_at',new Date().toISOString());
+    const rows=Array.isArray(r.data)?r.data:[];
+    const same=rows.length===RCV.reqs.length&&rows.every((x,i)=>x.id===RCV.reqs[i].id);
+    if(!same){
+      await ensureProfiles(rows.map(x=>x.user_id));
+      RCV.reqs=rows;
+      if(view==='chats')renderChats();
+    }
+  }catch(e){}
+}
+function recCardHTML(){
+  if(!RCV.reqs.length)return '';
+  return RCV.reqs.map(r=>'<div class="daily"><span class="dq">🔑 '+esc(nameOf(r.user_id))+' a perdu son accès</span>'+
+    '<p class="small" style="margin:0">Tu es son ami garant. Valide <b>uniquement</b> si cette personne t\'a contacté directement (appel, message hors Pépie) et que tu es sûr que c\'est bien elle. Sinon, refuse.</p>'+
+    '<button class="ctact" data-act="recok" data-id="'+r.id+'"><span class="cinfo"><b style="font-size:14px;white-space:normal">✅ Oui, c\'est bien elle</b></span></button>'+
+    '<button class="ctact" data-act="recno" data-id="'+r.id+'"><span class="cinfo"><b style="font-size:14px;white-space:normal">🚫 Non, je ne connais pas cette demande</b></span></button></div>').join('');
+}
+async function recAnswer(id,ok){
+  const r=await sb.rpc('approve_recovery',{rid:id,ok:ok});
+  if(r&&r.error){toast('Impossible : '+(r.error.message||'erreur'),3500)}
+  else toast(ok?'Validé ✅ Ton ami peut se reconnecter.':'Demande refusée.',3000);
+  RCV.reqs=RCV.reqs.filter(x=>x.id!==id);
+  if(view==='chats')renderChats();
+}
+A.recok=t=>recAnswer(t.dataset.id,true);
+A.recno=t=>recAnswer(t.dataset.id,false);
+
+document.addEventListener('input',ev=>{
+  const t=ev.target;
+  if(t.id==='rq')RS.q=t.value;
+  if(t.id==='ra')RS.a=t.value;
+});
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4338,7 +4583,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792528696';
+const BUILD='1792529748';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
