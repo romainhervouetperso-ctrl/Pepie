@@ -108,7 +108,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .play.xs.big{width:36px;height:36px;background:var(--coral)}
 .plb{display:inline-flex;align-items:center;gap:8px}
 .player{display:flex;align-items:center;gap:10px;background:var(--soft);border-radius:14px;padding:8px 12px 8px 8px}
-.wave{flex:1;min-width:0;display:flex;align-items:center;gap:2px;height:34px}
+.wave{touch-action:pan-y;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;gap:2px;height:34px}
 .wave i{flex:1;min-width:1px;border-radius:2px;background:var(--muted);opacity:.45;transition:background .12s,opacity .12s}
 .wave i.on{background:var(--coral);opacity:1}
 .spd{flex:none;border:0;background:rgba(0,0,0,.09);border-radius:99px;font:800 11px/1 inherit;padding:6px 8px;color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}.spd[data-on]{background:var(--coral);color:#fff}
@@ -1129,17 +1129,17 @@ async function startAudio(key,src,o){
     a.playbackRate=Math.max(0.5,Math.min(2,(o.rateAbs||S.rate)*(fx&&fx.rate||1)));
     if(fx&&fx.rate){a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false}
   }catch(e){}
-  const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now(),nodes:null};
+  const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now(),nodes:null,dur:o.dur||0,fixing:false};
   np=st;msSet(key,a);
   if(fx&&(fx.ring||fx.band||fx.warm||fx.dist||fx.echo)){try{st.nodes=buildFx(a,fx)}catch(e){st.nodes=null}}
-  a.onended=()=>{if(np===st)finish()};
+  a.onended=()=>{if(np===st&&!st.fixing)finish()};
   a.onerror=()=>{
     if(np!==st)return;
     if(fx&&!o.retried){stopPlay();startAudio(key,src,Object.assign({},o,{fx:null,retried:true}));return}
     stopPlay();toast("Lecture du vocal impossible.");
   };
   a.ontimeupdate=()=>{
-    if(np!==st)return;
+    if(np!==st||st.fixing||SEEK.on)return;
     const d=isFinite(a.duration)&&a.duration>0?a.duration:(o.dur||0);
     if(d)st.prog=Math.min(1,a.currentTime/d);
   };
@@ -1335,7 +1335,7 @@ const R={on:false,rec:null,text:'',demo:false,t0:0,iv:0,dv:0,gv:0,got:false,ui:n
 function recClear(){clearInterval(R.iv);clearInterval(R.dv);clearTimeout(R.gv)}
 function recRelease(){
   try{if(R.mr){R.mr.ondataavailable=null;R.mr.onstop=null;if(R.mr.state!=='inactive')R.mr.stop()}}catch(e){}
-  try{if(R.stream)R.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  micIdle();
   R.mr=null;R.stream=null;
 }
 function recKill(){
@@ -1370,14 +1370,14 @@ function recStart(ui){
   R.iv=setInterval(recTick,250);recTick();
   /* 1. enregistrement de la vraie voix */
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder){
-    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}).then(stream=>{
-      if(!R.on||R.ui!==ui){stream.getTracks().forEach(t=>t.stop());return}
+    micGet().then(stream=>{
+      if(!R.on||R.ui!==ui){micIdle();return}
       try{
         const mt=pickMime(),mr=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:48000}:{audioBitsPerSecond:48000});
         R.stream=stream;R.mime=(mr.mimeType||mt||'audio/webm').split(';')[0];
         mr.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data)};
         mr.start(500);R.mr=mr;R.got=true;
-      }catch(e){stream.getTracks().forEach(t=>t.stop());R.audioFail=true;recFailCheck()}
+      }catch(e){micDrop();R.audioFail=true;recFailCheck()}
     }).catch(()=>{R.audioFail=true;recFailCheck()});
   }else{R.audioFail=true}
   /* 2. transcription en direct */
@@ -4787,6 +4787,82 @@ function msClear(){
   const ms=navigator.mediaSession;if(!ms)return;
   try{ms.playbackState='none'}catch(e){}
 }
+/* ---------- Micro : on ne redemande plus l'autorisation à chaque vocal ---------- */
+const MIC={stream:null,timer:0,hid:0};
+function micLive(){return !!(MIC.stream&&MIC.stream.getTracks&&MIC.stream.getTracks().length&&MIC.stream.getTracks().every(t=>t.readyState==='live'))}
+async function micGet(){
+  clearTimeout(MIC.timer);
+  if(micLive()){MIC.stream.getTracks().forEach(t=>{t.enabled=true});return MIC.stream}
+  micDrop();
+  const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  MIC.stream=s;
+  return s;
+}
+function micIdle(){
+  if(!MIC.stream)return;
+  try{MIC.stream.getTracks().forEach(t=>{t.enabled=false})}catch(e){}
+  clearTimeout(MIC.timer);
+  MIC.timer=setTimeout(micDrop,180000);
+}
+function micDrop(){
+  clearTimeout(MIC.timer);
+  try{if(MIC.stream)MIC.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  MIC.stream=null;
+}
+document.addEventListener('visibilitychange',()=>{
+  clearTimeout(MIC.hid);
+  if(document.hidden)MIC.hid=setTimeout(()=>{if(!R.on)micDrop()},45000);
+});
+
+/* ---------- Barre de progression des vocaux : toucher ou glisser pour avancer / reculer ---------- */
+const SEEK={on:false,key:'',frac:0,moved:false};
+function seekFrac(e,w){const r=w.getBoundingClientRect();return r.width?Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)):0}
+function seekAudio(st,frac){
+  const a=st&&st.audio;if(!a)return;
+  st.prog=frac;
+  const dur=isFinite(a.duration)&&a.duration>0?a.duration:0;
+  if(dur){try{a.currentTime=Math.max(0,Math.min(dur-0.05,frac*dur))}catch(e){}return}
+  /* durée inconnue (webm enregistré dans le navigateur) : on la fait calculer, puis on se place */
+  st.fixing=true;
+  const f=()=>{
+    a.removeEventListener('timeupdate',f);
+    st.fixing=false;
+    const d=isFinite(a.duration)&&a.duration>0?a.duration:(st.dur||0);
+    try{a.currentTime=d?Math.max(0,Math.min(d-0.05,frac*d)):0}catch(e){}
+    try{const p=a.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+  };
+  a.addEventListener('timeupdate',f);
+  try{a.currentTime=1e101}catch(e){st.fixing=false;a.removeEventListener('timeupdate',f)}
+}
+document.addEventListener('pointerdown',e=>{
+  const w=e.target&&e.target.closest&&e.target.closest('.wave');
+  if(!w||w.classList.contains('live'))return;
+  const h=w.closest('[data-key]');if(!h)return;
+  const key=h.dataset.key;
+  SEEK.on=true;SEEK.key=key;SEEK.moved=false;SEEK.frac=seekFrac(e,w);
+  try{w.setPointerCapture(e.pointerId)}catch(_){}
+  if(!(np&&np.key===key)){const b=h.querySelector('[data-act="play"]');if(b)A.play(b)}
+  else if(np.audio){np.prog=SEEK.frac;paintKey(key)}
+});
+document.addEventListener('pointermove',e=>{
+  if(!SEEK.on)return;
+  const h=document.querySelector('[data-key="'+SEEK.key+'"]'),w=h&&h.querySelector('.wave');if(!w)return;
+  SEEK.frac=seekFrac(e,w);SEEK.moved=true;
+  if(np&&np.key===SEEK.key&&np.audio){np.prog=SEEK.frac;paintKey(SEEK.key)}
+});
+function seekEnd(){
+  if(!SEEK.on)return;
+  const key=SEEK.key,frac=SEEK.frac;
+  SEEK.on=false;
+  let n=0;
+  const t=setInterval(()=>{
+    n++;
+    if(np&&np.key===key&&np.audio){clearInterval(t);seekAudio(np,frac)}
+    else if(n>50)clearInterval(t);
+  },100);
+}
+document.addEventListener('pointerup',seekEnd);
+document.addEventListener('pointercancel',seekEnd);
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4835,7 +4911,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792586647';
+const BUILD='1792592139';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
