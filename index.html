@@ -336,6 +336,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .avtabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .avtabs .chip{flex:none}
 .opts .opt{width:auto}
+.more{margin:14px 0 80px}.more summary{cursor:pointer;color:var(--mut,#8A5F52);font-size:13px;padding:8px 2px}.more .pills{margin-top:6px}.fabw{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(78px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:0;background:#2F5BFF;color:#fff;font-size:22px;box-shadow:0 4px 12px #0003;z-index:5}
 </style>
 
 <div class="app" id="app">
@@ -3181,9 +3182,11 @@ function renderChats(){
   html+=recCardHTML();
   html+=startCardHTML();
   html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans Aujourd\'hui':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
-  html+='<div class="pills"><button class="pill" data-act="newchat">'+ico('plus',16)+'Nouvelle discussion</button><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div>';
+  const moreH='<details class="more"><summary>Plus d\'options</summary><div class="pills"><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div></details>';
+  const fabH='<button class="fabw" data-act="newchat" aria-label="Nouvelle discussion">✏️</button>';
   if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
   html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
+  html+=moreH+fabH;
   $('#v-chats').innerHTML=html;
   renderTabs();
 }
@@ -4922,7 +4925,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792592649';
+const BUILD='1792592943';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
