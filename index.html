@@ -1538,6 +1538,7 @@ function renderChat(){
 }
 function noteHTML(c,m,kind){
   const d=m[kind];if(!d)return '';
+  if(kind==='sum'&&d.local&&(d.ess||d.chips))return sumNoteHTML(c,m,d);
   const lab=kind==='sum'?(d.local?'Aperçu rapide':'Résumé IA'):(kind==='tr'?'Traduction · '+d.lang:'Style · '+d.style);
   return '<div class="anote" data-key="n:'+c.id+':'+m.id+':'+kind+'"><div class="alab">'+ico('sparkle',14)+esc(lab)+'</div>'+
     (d.loading?'<span class="dots"><i></i><i></i><i></i></span>':'<div class="trow"><p class="tr">'+words(d.text)+'</p><button class="play xs" data-act="play" aria-label="Écouter"><span class="pi" data-e="1">🔊</span></button></div>')+'</div>';
@@ -1675,7 +1676,7 @@ function mmenuHTML(c,m,sub){
   return head+quick+'<div class="list" style="gap:8px">'+
     row('mreply','reply','Répondre')+
     row('mpin','sparkle',c.pinned===m.id?'Désépingler':'Épingler en haut')+(fwdable(m)?row('mfwd','send','Transférer'):'')+
-    row('msum','sparkle','Résumer (IA)')+
+    (sumable(m)?row('msum','sparkle','Résumer'):'')+
     row('mtrsub','globe','Traduire (IA)')+
     row('mfav','sparkle',((S.favs||[]).some(f=>f.mid===m.id)?'Retirer des favoris':'Ajouter aux favoris'))+
     (m.f!=='me'?row('mreport','help','Signaler')+row('mblock','help',BLK[m.f]?'Débloquer '+esc(nameOf(m.f)):'Bloquer '+esc(nameOf(m.f))):'')+(m.f==='me'&&editable(m)?row('medit','text',m.k==='voice'?'Corriger la transcription':'Modifier'):'')+(m.f==='me'&&m.k!=='ai'&&!m.pending?row('mdel','close','Supprimer pour tous'):'')+
@@ -4670,6 +4671,93 @@ function paintSpd(){
   let raf=0;
   new MutationObserver(()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;try{paintSpd()}catch(e){}})}).observe(document.body,{childList:true,subtree:true});
 }
+/* ---------- Résumé local : l'essentiel + repères (sans IA, calculé sur l'appareil) ---------- */
+const RS_DAYS=/\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|demain|ce soir|ce week-end|après-demain|ce matin|dimanche prochain)\b/gi;
+const RS_HOURS=/(?:^|[\s,])(?:à|vers|avant|dès|après)\s+(\d{1,2}\s?h(?:\s?\d{2})?|(?:une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|vingt et une|vingt-deux)\s+heures?(?:\s+(?:trente|quinze|quarante-cinq))?)/gi;
+const RS_FILL=[/\b(euh+|heu+|ben|bah|hein)\b[,.]?/gi,/\b(du coup|en fait|genre|tu vois|tu sais|enfin|voilà|bref|alors|écoute|ah et|et sinon|mais voilà)\b[,]?/gi];
+const RS_ASK=/(peux-tu|tu peux|pourrais|tu pourrais|il faut|il faudrait|n'oublie|n’oublie|rappelle|préviens|prévenir|dis-moi|apporte|occuper|penser à|pense à)/i;
+const RS_Q=/^(est-ce que|est ce que|qu'est-ce|quand |où |comment |pourquoi |combien |tu peux |peux-tu|pourrais-tu|tu pourrais)/i;
+const rsWords=t=>String(t).trim().split(/\s+/).filter(Boolean).length;
+function rsClean(s){
+  RS_FILL.forEach(r=>{s=s.replace(r,'')});
+  s=s.replace(/\s{2,}/g,' ').replace(/[,;]+\s*([.?!])/g,'$1').replace(/\s+([,.?!])/g,'$1').replace(/^[,\s]+/,'').trim();
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function rsSplit(t){
+  let S=(String(t).replace(/\s+/g,' ').match(/[^.!?]+[.!?]*/g)||[]).map(s=>s.trim()).filter(Boolean);
+  const out=[];
+  S.forEach(s=>{
+    if(rsWords(s)<=26){out.push(s);return}
+    s.split(/\s+(?=(?:mais|donc|du coup|alors|sinon|ensuite|et puis|et aussi|par contre|bref|et sinon|ah et|est-ce que|est ce que|n'oublie|n’oublie|dis-moi|rappelle|tu peux|peux-tu|tu pourrais|pourrais-tu|il faut|il faudrait|j'ai besoin)\b)/i).forEach(p=>{
+      let w=p.split(' ');
+      while(w.length>30){out.push(w.slice(0,22).join(' '));w=w.slice(22)}
+      if(w.length)out.push(w.join(' '));
+    });
+  });
+  const m=[];
+  for(let i=0;i<out.length;i++){
+    let cur=out[i];
+    while(rsWords(cur)<=3&&i+1<out.length&&!/[.?!]$/.test(cur)){i++;cur+=' '+out[i]}
+    m.push(cur);
+  }
+  return m;
+}
+function rsParts(t){
+  const S=rsSplit(t);
+  const dates=Array.from(new Set((String(t).match(RS_DAYS)||[]).map(x=>x.toLowerCase())));
+  const hours=Array.from(new Set(Array.from(String(t).matchAll(RS_HOURS)).map(m=>m[1])));
+  const places=Array.from(new Set(Array.from(String(t).matchAll(/(?:^|[\s,])(?:chez|à|au|aux|près de)\s+(?:la |le |l')?([A-ZÉ][\wéèêîôâ'’-]+(?:\s[A-ZÉ][\wéèêîôâ'’-]+)?)/g)).map(m=>m[1])));
+  const isQ=s=>/\?$/.test(s)||RS_Q.test(rsClean(s));
+  const qs=S.filter(isQ).map(rsClean);
+  const asks=S.filter(s=>RS_ASK.test(s)&&!isQ(s)).map(rsClean);
+  return {S:S,dates:dates,hours:hours,places:places,qs:qs,asks:asks,isQ:isQ};
+}
+function rsEssential(P){
+  const S=P.S;if(S.length<4)return null;
+  const k=Math.min(3,Math.ceil(S.length/3));
+  const sc=S.map((s,i)=>{
+    const c=rsClean(s),n=c.split(' ').length;let v=0;
+    RS_HOURS.lastIndex=0;if(/\d/.test(s)||RS_HOURS.test(s))v+=2;RS_HOURS.lastIndex=0;
+    RS_DAYS.lastIndex=0;if(RS_DAYS.test(s))v+=2;RS_DAYS.lastIndex=0;
+    if(P.isQ(s))v+=3;if(RS_ASK.test(s))v+=2.5;
+    if(/[a-zé]\s+[A-ZÉ][a-zé]+/.test(s))v+=1;
+    if(/urgent|important|avant|confirmer|dès que/i.test(s))v+=2;
+    if(i===0)v+=2.5;if(n<5)v-=2;v-=Math.max(0,(n-22)/10);
+    return {i:i,v:v};
+  });
+  return sc.slice().sort((a,b)=>b.v-a.v).slice(0,k).sort((a,b)=>a.i-b.i).map(x=>rsClean(S[x.i]));
+}
+function localSummary(text){
+  const t=String(text||'').trim();
+  if(rsWords(t)<25)return null;
+  const P=rsParts(t),ess=rsEssential(P);
+  const chips=[];
+  P.dates.forEach(d=>chips.push('📅 '+d));P.hours.forEach(h=>chips.push('🕘 '+h));P.places.forEach(p=>chips.push('📍 '+p));
+  if(!ess&&!chips.length&&!P.qs.length&&!P.asks.length)return null;
+  const text2=(ess||[]).join(' ')||P.qs.concat(P.asks).join(' ');
+  return {local:true,ess:ess||[],chips:chips.slice(0,6),qs:P.qs.slice(0,2),asks:P.asks.slice(0,3),text:text2||chips.join(', ')};
+}
+const sumable=m=>!!(m&&m.k!=='ai'&&!m.del&&localSummary(m.text));
+function sumNoteHTML(c,m,d){
+  const ul=a=>'<ul style="margin:0;padding-left:18px">'+a.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul>';
+  let h='<div class="anote" data-key="n:'+c.id+':'+m.id+':sum"><div class="alab">'+ico('sparkle',14)+(d.ess&&d.ess.length?'L\'essentiel':'À retenir')+'</div>';
+  h+='<div class="trow"><div class="tr" style="flex:1">';
+  if(d.ess&&d.ess.length)h+=ul(d.ess);
+  if(d.chips&&d.chips.length)h+='<div class="chips" style="margin-top:6px">'+d.chips.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div>';
+  if(d.qs&&d.qs.length)h+='<div style="margin-top:6px"><b>❓ Question</b><br>'+d.qs.map(esc).join('<br>')+'</div>';
+  if(d.asks&&d.asks.length)h+='<div style="margin-top:6px"><b>✅ À faire</b><br>'+d.asks.map(esc).join('<br>')+'</div>';
+  h+='</div><button class="play xs" data-act="play" aria-label="Écouter"><span class="pi" data-e="1">🔊</span></button></div></div>';
+  return h;
+}
+A.msum=async()=>{
+  const c=conv(MM.cid),m=c&&c.msgs.find(x=>x.id===MM.mid);if(!m)return;
+  const smp=await getSample();
+  if(smp)return inlineAI('sum','');
+  closeSheet();
+  const r=localSummary(m.text);
+  if(!r){toast('Ce message est trop court pour être résumé.');return}
+  m.sum=r;save();renderMsgs();syncMeta(m,'sum',r);
+};
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4718,7 +4806,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792575456';
+const BUILD='1792575813';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
