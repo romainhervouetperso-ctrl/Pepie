@@ -2722,11 +2722,35 @@ const CHAL={
   imit:{e:'🎭',label:'Défi imitation',btn:'Je relève le défi',list:["Imite un animal de la ferme sans dire son nom.","Imite le réveil du matin.","Imite un professeur très fatigué.","Imite un chat qui a vu un concombre.","Imite un présentateur télé qui annonce une catastrophe, avec le sourire.","Imite quelqu'un du groupe sans le nommer.","Imite une machine à café en panne.","Imite un bébé dragon qui éternue."]},
   chor:{e:'🎶',label:'Chorale',btn:'Ajouter ma voix',list:["Chantez tous « Joyeux anniversaire », chacun son tour.","Chacun dit un mot gentil à la suite : on écoute l'ensemble.","Chacun compte un nombre : un, deux, trois, quatre…","Chacun fait son meilleur « bravo » enthousiaste.","Chacun donne son cri de victoire."]}
 };
-function sendChallenge(c,k){
-  const d=CHAL[k],t=pick(d.list);
+let CH={k:'',cid:'',txt:'',sug:[]};
+function postChallenge(c,k,t){
+  const d=CHAL[k];
   addMsg(c,{f:'me',k:'text',text:d.e+' '+d.label+' : '+t,chal:k});
   closeSheet();renderMsgs(true);
 }
+function challengeHTML(){
+  const d=CHAL[CH.k];
+  return sheetHead(d.e+' '+d.label)+
+    '<label class="lbl" for="chtx">Écris ta propre question ou ton défi</label>'+
+    '<textarea id="chtx" class="inp" rows="3" maxlength="200" placeholder="Ex : quelle est ta pire excuse pour ne pas sortir ?">'+esc(CH.txt)+'</textarea>'+
+    '<button class="btn primary w100" data-act="chsend">Envoyer</button>'+
+    '<div class="lbl">Ou pars d\'une idée</div><div class="chips" style="flex-direction:column;align-items:stretch">'+
+    CH.sug.map(x=>'<button class="chip" style="text-align:left;white-space:normal" data-act="chsug" data-t="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>'+
+    '<button class="btn ghost w100" data-act="chrand">🎲 Tirer au hasard et envoyer</button>';
+}
+function sendChallenge(c,k){
+  CH={k:k,cid:c.id,txt:'',sug:CHAL[k].list.slice().sort(()=>Math.random()-.5).slice(0,3)};
+  setSheet(challengeHTML());
+}
+A.chsug=t=>{CH.txt=t.dataset.t;const i=$('#chtx');if(i){i.value=CH.txt;i.focus()}};
+A.chsend=()=>{
+  const c=conv(CH.cid),i=$('#chtx'),t=((i&&i.value)||CH.txt||'').trim();
+  if(!c)return;
+  if(t.length<3){toast('Écris ta question (3 caractères minimum).');return}
+  postChallenge(c,CH.k,t);
+};
+A.chrand=()=>{const c=conv(CH.cid);if(c)postChallenge(c,CH.k,pick(CHAL[CH.k].list))};
+document.addEventListener('input',ev=>{if(ev.target.id==='chtx')CH.txt=ev.target.value});
 function chalBubble(c,m){
   const d=CHAL[m.chal];if(!d)return '<p class="tr">'+words(m.text)+'</p>';
   return '<div class="chal"><span class="ct">'+d.e+' '+esc(d.label)+'</span><p class="tr" style="margin:0">'+words(m.text.replace(/^[^:]*:\s*/,''))+'</p>'+
@@ -4693,7 +4717,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792574936';
+const BUILD='1792575235';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
