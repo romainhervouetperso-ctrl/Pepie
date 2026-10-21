@@ -2206,6 +2206,7 @@ function renderMe(){
     '<div class="group"><div class="lbl">Niveau maximum que j\'accepte</div><div class="chips">'+LVO.map(k=>'<button class="chip" data-act="lvmax" data-v="'+k+'" aria-pressed="'+(minLv(me.maxLevel,cap)===k)+'"'+(LVO.indexOf(k)>LVO.indexOf(cap)?' disabled':'')+'>'+LV[k].label+'</button>').join('')+'</div></div>'+
     '<div class="group"><div class="lbl">Sujets interdits</div><div class="chips"><button class="chip" aria-pressed="true" disabled>Physique (toujours)</button>'+TOPICS.map(t=>'<button class="chip" data-act="topic" data-t="'+t+'" aria-pressed="'+(me.blocked.indexOf(t)>=0)+'">'+t+'</button>').join('')+'</div></div>'+
     '<p class="small" style="margin:0">Les roasts ne visent jamais le physique, l\'origine, la religion, la santé, l\'orientation, ni aucune menace. Si une conversation montre quelqu\'un qui va mal, l\'IA n\'envoie pas de roast.</p></div>';
+  h+=micHTML();
   h+=secHTML();
   h+='<div class="stage left"><button class="btn ghost w100" data-act="copyinv">'+ico('link',16)+'Inviter des amis (copier le lien)</button><button class="btn ghost w100" data-act="logout">Me déconnecter</button></div>';
   h+='<div class="stage left"><h2 class="h3">Ma boîte à outils</h2><div class="mgrid">'+
@@ -4798,21 +4799,31 @@ async function micGet(){
   MIC.stream=s;
   return s;
 }
-function micIdle(){
-  if(!MIC.stream)return;
-  try{MIC.stream.getTracks().forEach(t=>{t.enabled=false})}catch(e){}
-  clearTimeout(MIC.timer);
-  MIC.timer=setTimeout(micDrop,180000);
-}
+function micIdle(){micDrop()}
 function micDrop(){
   clearTimeout(MIC.timer);
   try{if(MIC.stream)MIC.stream.getTracks().forEach(t=>t.stop())}catch(e){}
   MIC.stream=null;
 }
-document.addEventListener('visibilitychange',()=>{
-  clearTimeout(MIC.hid);
-  if(document.hidden)MIC.hid=setTimeout(()=>{if(!R.on)micDrop()},45000);
-});
+
+/* ---------- Réglage « Micro » : une seule autorisation, vérifiée dans les paramètres ---------- */
+let micState='unknown';
+async function micCheck(){
+  try{if(navigator.permissions&&navigator.permissions.query){const p=await navigator.permissions.query({name:'microphone'});micState=p.state;p.onchange=()=>{micState=p.state;micPaint()};}}catch(e){}
+  micPaint();
+}
+function micPaint(){
+  const e=document.getElementById('micst');if(!e)return;
+  e.textContent=micState==='granted'?'✅ Autorisé : Pépie n\'a plus à te le demander.':micState==='denied'?'⛔ Refusé : à rouvrir dans les réglages du téléphone (voir ci-dessous).':micState==='prompt'?'Pas encore autorisé.':'État inconnu sur ce navigateur.';
+}
+const micHTML=()=>{setTimeout(micCheck,50);return '<div class="stage left"><h2 class="h3">Micro</h2><p class="small" id="micst" style="margin:0">…</p>'+
+  '<button class="btn ghost w100" data-act="micask">🎙️ Autoriser le micro maintenant</button>'+
+  '<p class="small" style="margin:0">Le micro ne reste jamais ouvert : il ne s\'allume que pendant un enregistrement. La fenêtre « souhaite accéder au micro » est affichée par ton navigateur, pas par Pépie. Pour qu\'elle ne revienne plus :</p>'+
+  '<p class="small" style="margin:0"><b>iPhone</b> : Réglages › Apps › Safari › Micro › « Autoriser » (ou, dans Safari, bouton « aA » › Réglages du site web › Micro › Autoriser).<br><b>Android (Chrome)</b> : touche « Autoriser » (pas « cette fois ») ; sinon cadenas › Autorisations › Micro › Autoriser.</p></div>'};
+A.micask=async()=>{
+  try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());toast('Micro autorisé 👍')}catch(e){toast('Micro refusé : voir les réglages du téléphone')}
+  micCheck();
+};
 
 /* ---------- Barre de progression des vocaux : toucher ou glisser pour avancer / reculer ---------- */
 const SEEK={on:false,key:'',frac:0,moved:false};
@@ -4911,7 +4922,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792592139';
+const BUILD='1792592649';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
