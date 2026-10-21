@@ -1072,12 +1072,12 @@ function killAudio(st){
 }
 function finish(){
   if(!np)return;
-  const k=np.key,after=np.after;clearInterval(np.timer);killAudio(np);np=null;paintKey(k);
+  const k=np.key,after=np.after;clearInterval(np.timer);killAudio(np);np=null;msClear();paintKey(k);
   if(after)try{after()}catch(e){}
 }
 function stopPlay(){
   if(!np)return;
-  const k=np.key;clearInterval(np.timer);killAudio(np);np=null;
+  const k=np.key;clearInterval(np.timer);killAudio(np);np=null;msClear();
   try{if(synth)synth.cancel()}catch(e){}
   paintKey(k);
 }
@@ -1130,7 +1130,7 @@ async function startAudio(key,src,o){
     if(fx&&fx.rate){a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false}
   }catch(e){}
   const st={key:key,prog:0,audio:a,timer:0,after:o.after||null,t0:performance.now(),nodes:null};
-  np=st;
+  np=st;msSet(key,a);
   if(fx&&(fx.ring||fx.band||fx.warm||fx.dist||fx.echo)){try{st.nodes=buildFx(a,fx)}catch(e){st.nodes=null}}
   a.onended=()=>{if(np===st)finish()};
   a.onerror=()=>{
@@ -4758,6 +4758,35 @@ A.msum=async()=>{
   if(!r){toast('Ce message est trop court pour être résumé.');return}
   m.sum=r;save();renderMsgs();syncMeta(m,'sum',r);
 };
+/* ---------- Écoute en arrière-plan : commandes système (écran verrouillé, notifications média) ---------- */
+function msSet(key,a){
+  const ms=navigator.mediaSession;if(!ms||!window.MediaMetadata)return;
+  try{
+    let title='Vocal',album='Pépie';
+    const p=String(key).split(':');
+    if(p[0]==='m'){
+      const c=conv(p[1]),m=c&&c.msgs.find(x=>x.id===p[2]);
+      if(m)title='Vocal de '+(m.f==='me'?'toi':nameOf(m.f));
+      if(c)album=convTitle(c);
+    }else if(p[0]==='da'||p[0]==='st'){title='Vocal du jour'}
+    const base=new URL('.',location.href).href;
+    ms.metadata=new window.MediaMetadata({title:title,artist:'Pépie',album:album,artwork:[{src:base+'icon-192.png',sizes:'192x192',type:'image/png'},{src:base+'icon-512.png',sizes:'512x512',type:'image/png'}]});
+    ms.playbackState='playing';
+    const h=(n,f)=>{try{ms.setActionHandler(n,f)}catch(e){}};
+    h('play',()=>{try{a.play()}catch(e){}});
+    h('pause',()=>{try{a.pause()}catch(e){}});
+    h('stop',()=>stopPlay());
+    h('seekbackward',()=>{try{a.currentTime=Math.max(0,a.currentTime-10)}catch(e){}});
+    h('seekforward',()=>{try{a.currentTime=Math.min(a.duration||1e9,a.currentTime+10)}catch(e){}});
+    h('nexttrack',()=>{if(np&&np.audio===a)finish()});
+    a.addEventListener('pause',()=>{if(np&&np.audio===a&&!a.ended)ms.playbackState='paused'});
+    a.addEventListener('play',()=>{ms.playbackState='playing'});
+  }catch(e){}
+}
+function msClear(){
+  const ms=navigator.mediaSession;if(!ms)return;
+  try{ms.playbackState='none'}catch(e){}
+}
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4806,7 +4835,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792575813';
+const BUILD='1792586647';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
