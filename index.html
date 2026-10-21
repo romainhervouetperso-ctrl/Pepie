@@ -337,6 +337,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .avtabs .chip{flex:none}
 .opts .opt{width:auto}
 .more{margin:14px 0 80px}.more summary{cursor:pointer;color:var(--mut,#8A5F52);font-size:13px;padding:8px 2px}.more .pills{margin-top:6px}.fabw{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(78px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:0;background:#2F5BFF;color:#fff;font-size:22px;box-shadow:0 4px 12px #0003;z-index:5}
+.composer{align-items:flex-end}.composer textarea{flex:1;min-width:0;border:2px solid var(--line);border-radius:20px;background:var(--bg);color:var(--ink);padding:10px 14px;font-size:16px;line-height:1.3;resize:none;max-height:130px;font-family:inherit;box-sizing:border-box}.tr{white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 
 <div class="app" id="app">
@@ -1616,7 +1617,7 @@ function renderComposer(){
   const wc=conv(cur);
   if(wc&&wc.walkie){f.innerHTML='<button type="button" class="cbtn" data-act="plus" aria-label="Plus">'+ico('plus',22)+'</button>'+walkieComposer();return}
   f.innerHTML='<button type="button" class="cbtn" data-act="plus" aria-label="Stickers, sondages, jeux">'+ico('plus',22)+'</button><button type="button" class="cbtn" data-act="togq" aria-label="Emojis">'+ico('smile',22)+'</button>'+
-    '<input id="minput" maxlength="500" placeholder="Message" aria-label="Ton message" enterkeyhint="send" value="'+esc(chatDraft)+'">'+
+    '<textarea id="minput" rows="1" maxlength="500" placeholder="Message" aria-label="Ton message">'+esc(chatDraft)+'</textarea>'+
     '<button type="button" class="cbtn pri" id="micbtn" data-act="micstart" aria-label="Enregistrer un vocal"'+(has?' hidden':'')+'>'+ico('mic',22)+'</button>'+
     '<button type="submit" class="cbtn pri" id="sendbtn" aria-label="Envoyer"'+(has?'':' hidden')+'>'+ico('send',20)+'</button>';
 }
@@ -4877,6 +4878,16 @@ function seekEnd(){
 }
 document.addEventListener('pointerup',seekEnd);
 document.addEventListener('pointercancel',seekEnd);
+
+/* ---------- Champ de message : retour à la ligne + hauteur automatique ---------- */
+function minGrow(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,130)+'px'}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='minput')minGrow(e.target)});
+document.addEventListener('keydown',e=>{
+  const t=e.target;if(!t||t.id!=='minput'||e.key!=='Enter'||e.isComposing)return;
+  const touch=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+  if(!touch&&!e.shiftKey){e.preventDefault();sendText()}  /* ordinateur : Entrée envoie, Maj+Entrée = ligne */
+});                                                          /* téléphone : Entrée = nouvelle ligne, bouton pour envoyer */
+new MutationObserver(()=>{const t=document.getElementById('minput');if(t&&!t.dataset.g){t.dataset.g=1;minGrow(t)}}).observe(document.body,{childList:true,subtree:true});
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4925,7 +4936,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792592943';
+const BUILD='1792593991';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
