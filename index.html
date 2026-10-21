@@ -338,6 +338,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .opts .opt{width:auto}
 .more{margin:14px 0 80px}.more summary{cursor:pointer;color:var(--mut,#8A5F52);font-size:13px;padding:8px 2px}.more .pills{margin-top:6px}.fabw{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(78px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:0;background:#2F5BFF;color:#fff;font-size:22px;box-shadow:0 4px 12px #0003;z-index:5}
 .composer{align-items:flex-end}.composer textarea{flex:1;min-width:0;border:2px solid var(--line);border-radius:20px;background:var(--bg);color:var(--ink);padding:10px 14px;font-size:16px;line-height:1.3;resize:none;max-height:130px;font-family:inherit;box-sizing:border-box}.tr{white-space:pre-wrap;overflow-wrap:anywhere}
+.seektip{position:fixed;transform:translateX(-50%);background:#3B1A12;color:#fff;font-weight:700;font-size:13px;padding:5px 10px;border-radius:10px;z-index:99;pointer-events:none;font-variant-numeric:tabular-nums}
 </style>
 
 <div class="app" id="app">
@@ -4801,6 +4802,7 @@ async function micGet(){
   micDrop();
   const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
   MIC.stream=s;
+  micOK();
   return s;
 }
 function micIdle(){micDrop()}
@@ -4812,25 +4814,41 @@ function micDrop(){
 
 /* ---------- Réglage « Micro » : une seule autorisation, vérifiée dans les paramètres ---------- */
 let micState='unknown';
+function micOK(){micState='granted';try{localStorage.setItem('pp_mic','1')}catch(e){}micPaint()}
 async function micCheck(){
   try{if(navigator.permissions&&navigator.permissions.query){const p=await navigator.permissions.query({name:'microphone'});micState=p.state;p.onchange=()=>{micState=p.state;micPaint()};}}catch(e){}
+  try{if(micState==='unknown'&&localStorage.getItem('pp_mic'))micState='granted'}catch(e){}
   micPaint();
 }
 function micPaint(){
   const e=document.getElementById('micst');if(!e)return;
+  const mo=document.getElementById('micmore'),bt=document.getElementById('micbt');if(mo)mo.hidden=micState==='granted';if(bt)bt.hidden=micState==='granted';
   e.textContent=micState==='granted'?'✅ Autorisé : Pépie n\'a plus à te le demander.':micState==='denied'?'⛔ Refusé : à rouvrir dans les réglages du téléphone (voir ci-dessous).':micState==='prompt'?'Pas encore autorisé.':'État inconnu sur ce navigateur.';
 }
 const micHTML=()=>{setTimeout(micCheck,50);return '<div class="stage left"><h2 class="h3">Micro</h2><p class="small" id="micst" style="margin:0">…</p>'+
-  '<button class="btn ghost w100" data-act="micask">🎙️ Autoriser le micro maintenant</button>'+
-  '<p class="small" style="margin:0">Le micro ne reste jamais ouvert : il ne s\'allume que pendant un enregistrement. La fenêtre « souhaite accéder au micro » est affichée par ton navigateur, pas par Pépie. Pour qu\'elle ne revienne plus :</p>'+
-  '<p class="small" style="margin:0"><b>iPhone</b> : Réglages › Apps › Safari › Micro › « Autoriser » (ou, dans Safari, bouton « aA » › Réglages du site web › Micro › Autoriser).<br><b>Android (Chrome)</b> : touche « Autoriser » (pas « cette fois ») ; sinon cadenas › Autorisations › Micro › Autoriser.</p></div>'};
+  '<button class="btn ghost w100" id="micbt" data-act="micask">🎙️ Autoriser le micro maintenant</button>'+
+  '<div id="micmore"><p class="small" style="margin:0">Le micro ne reste jamais ouvert : il ne s\'allume que pendant un enregistrement. La fenêtre « souhaite accéder au micro » est affichée par ton navigateur, pas par Pépie. Pour qu\'elle ne revienne plus :</p>'+
+  '<p class="small" style="margin:0"><b>iPhone</b> : Réglages › Apps › Safari › Micro › « Autoriser » (ou, dans Safari, bouton « aA » › Réglages du site web › Micro › Autoriser).<br><b>Android (Chrome)</b> : touche « Autoriser » (pas « cette fois ») ; sinon cadenas › Autorisations › Micro › Autoriser.</p></div></div>'};
 A.micask=async()=>{
-  try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());toast('Micro autorisé 👍')}catch(e){toast('Micro refusé : voir les réglages du téléphone')}
+  try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());micOK();toast('Micro autorisé 👍')}catch(e){toast('Micro refusé : voir les réglages du téléphone')}
   micCheck();
 };
 
 /* ---------- Barre de progression des vocaux : toucher ou glisser pour avancer / reculer ---------- */
-const SEEK={on:false,key:'',frac:0,moved:false};
+const SEEK={on:false,key:'',frac:0,moved:false,tip:null};
+function seekDur(h){
+  if(np&&np.key===SEEK.key){const a=np.audio;if(a&&isFinite(a.duration)&&a.duration>0)return a.duration;if(np.dur)return np.dur}
+  const d=h&&h.querySelector('.dur'),m=d&&/(\d+):(\d{2})/.exec(d.textContent||'');
+  return m?(+m[1])*60+(+m[2]):0;
+}
+const tm=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function seekTip(h,w,show){
+  if(!show){if(SEEK.tip){SEEK.tip.remove();SEEK.tip=null}return}
+  if(!SEEK.tip){const t=document.createElement('div');t.className='seektip';document.body.appendChild(t);SEEK.tip=t}
+  const r=w.getBoundingClientRect(),dur=seekDur(h),x=Math.max(30,Math.min(innerWidth-30,r.left+SEEK.frac*r.width));
+  SEEK.tip.textContent=dur?tm(SEEK.frac*dur)+' / '+tm(dur):Math.round(SEEK.frac*100)+' %';
+  SEEK.tip.style.left=x+'px';SEEK.tip.style.top=Math.max(8,r.top-38)+'px';
+}
 function seekFrac(e,w){const r=w.getBoundingClientRect();return r.width?Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)):0}
 function seekAudio(st,frac){
   const a=st&&st.audio;if(!a)return;
@@ -4856,19 +4874,20 @@ document.addEventListener('pointerdown',e=>{
   const key=h.dataset.key;
   SEEK.on=true;SEEK.key=key;SEEK.moved=false;SEEK.frac=seekFrac(e,w);
   try{w.setPointerCapture(e.pointerId)}catch(_){}
+  seekTip(h,w,true);
   if(!(np&&np.key===key)){const b=h.querySelector('[data-act="play"]');if(b)A.play(b)}
   else if(np.audio){np.prog=SEEK.frac;paintKey(key)}
 });
 document.addEventListener('pointermove',e=>{
   if(!SEEK.on)return;
   const h=document.querySelector('[data-key="'+SEEK.key+'"]'),w=h&&h.querySelector('.wave');if(!w)return;
-  SEEK.frac=seekFrac(e,w);SEEK.moved=true;
+  SEEK.frac=seekFrac(e,w);SEEK.moved=true;seekTip(h,w,true);
   if(np&&np.key===SEEK.key&&np.audio){np.prog=SEEK.frac;paintKey(SEEK.key)}
 });
 function seekEnd(){
   if(!SEEK.on)return;
   const key=SEEK.key,frac=SEEK.frac;
-  SEEK.on=false;
+  SEEK.on=false;seekTip(null,null,false);
   let n=0;
   const t=setInterval(()=>{
     n++;
@@ -4936,7 +4955,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792593991';
+const BUILD='1792594448';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
