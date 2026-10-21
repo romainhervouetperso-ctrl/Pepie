@@ -766,7 +766,7 @@ function addMsg(c,m,pre){
   c.msgs.push(m);scanBanned(c,m,false);
   const meta={};
   META_KEYS.forEach(k=>{if(m[k]!==undefined&&m[k]!=='')meta[k]=m[k]});
-  const row=()=>({id:id,conv_id:c.id,sender:myId,kind:m.k,body:(m.text||'').slice(0,4000),dur:m.dur==null?null:m.dur,meta:meta});
+  const row=()=>({id:id,conv_id:c.id,sender:myId,kind:m.k,body:(m.text||'').slice(0,12000),dur:m.dur==null?null:m.dur,meta:meta});
   const go=()=>sb.from('messages').insert(row());
   const run=pre?pre.then(()=>go(),()=>{delete meta.audio;if(navigator.onLine!==false)toast("Ton audio n'a pas pu être envoyé : le vocal part en texte.");return go()}):go();
   Promise.resolve(run).then(r=>{
@@ -1391,6 +1391,7 @@ function recStart(ui){
         for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript+' ';else it+=x[0].transcript}
         R.text=(fin+it).trim();if(R.ui&&R.ui.live)R.ui.live(R.text);
       };
+      r.onend=()=>{if(R.on&&R.rec===r&&!R.srFail){setTimeout(()=>{try{if(R.on&&R.rec===r)r.start()}catch(e){}},150)}};
       r.onerror=e=>{if(R.on&&!R.demo&&e&&/not-allowed|service-not-allowed|audio-capture|language-not-supported/.test(e.error)){R.srFail=true;recFailCheck()}};
       r.start();
     }catch(e){R.srFail=true}
@@ -1647,9 +1648,9 @@ function sendVoice(r){
 function startChatRec(){
   chatRec=true;renderComposer();
   recStart({
-    max:180,
+    max:600,
     live:t=>{const e=$('#cLive');if(e)e.textContent=t||"Je t'écoute…"},
-    tick:s=>{if(s%3===0)typSend('r');const e=$('#cTimer');if(e)e.textContent=fmt(s)+' / 3:00'},
+    tick:s=>{if(s%3===0)typSend('r');const e=$('#cTimer');if(e)e.textContent=fmt(s)+' / 10:00'},
     done:r=>{
       if(!chatRec)return;
       chatRec=false;
@@ -2746,7 +2747,7 @@ A.chsug=t=>{CH.txt=t.dataset.t;const i=$('#chtx');if(i){i.value=CH.txt;i.focus()
 A.chsend=()=>{
   const c=conv(CH.cid),i=$('#chtx'),t=((i&&i.value)||CH.txt||'').trim();
   if(!c)return;
-  if(t.length<3){toast('Écris ta question (3 caractères minimum).');return}
+  if(t.length<10){toast('Écris une vraie question (10 caractères minimum).');return}
   postChallenge(c,CH.k,t);
 };
 A.chrand=()=>{const c=conv(CH.cid);if(c)postChallenge(c,CH.k,pick(CHAL[CH.k].list))};
@@ -4717,7 +4718,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792575235';
+const BUILD='1792575456';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
