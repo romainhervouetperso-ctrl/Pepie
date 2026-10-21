@@ -111,6 +111,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .wave{flex:1;min-width:0;display:flex;align-items:center;gap:2px;height:34px}
 .wave i{flex:1;min-width:1px;border-radius:2px;background:var(--muted);opacity:.45;transition:background .12s,opacity .12s}
 .wave i.on{background:var(--coral);opacity:1}
+.spd{flex:none;border:0;background:rgba(0,0,0,.09);border-radius:99px;font:800 11px/1 inherit;padding:6px 8px;color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}.spd[data-on]{background:var(--coral);color:#fff}
 .dur{flex:none;display:flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .rd{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:2px 0;font:700 13.5px var(--font-body);color:inherit;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:var(--yellow);cursor:pointer}
 .tr{margin:0;font-size:15.5px;line-height:1.55;overflow-wrap:anywhere}
@@ -1562,7 +1563,7 @@ function msgHTML(c,ms,i,dayStart){
   if(m.re){const r=c.msgs.find(x=>x.id===m.re);if(r)inner+='<div class="quote"><b>'+esc(nameOf(r.f))+'</b> '+esc(snip(r.text||r.title||'',50))+'</div>'}
   if(m.del){inner+='<p class="tr" style="opacity:.65;font-style:italic">Message supprimé</p>'}
   else if(m.k==='voice'){
-    inner+='<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
+    inner+='<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
       '<button class="rd" data-act="mtrx" aria-expanded="'+!!open+'">'+ico('text',16)+'<span>'+(open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(open?'':' hidden')+'>'+words(m.text)+'</p>';
   }else if(m.stk){inner+=stickerBubble(m)}
   else if(m.media){inner+=mediaHTML(m)+(m.text&&!/^(📷 Photo|🎬 Vidéo)$/.test(m.text)?'<p class="tr">'+esc(m.text)+'</p>':'')}
@@ -2054,7 +2055,7 @@ function postHTML(p){
   return '<article class="post '+p.type+'" data-key="p:'+p.id+'" data-id="'+p.id+'">'+
     '<div class="ph"><span class="av">'+avatar(u.a,40)+'</span><div class="who"><b>'+esc(u.name)+'</b><span>'+esc(u.handle)+' · '+ago(p.t)+'</span></div>'+
     '</div>'+
-    '<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(p.id+p.text)+'</div><span class="dur">'+ico(voice?'mic':'speaker',14)+fmt(durOf(p))+'</span></div>'+
+    '<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(p.id+p.text)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico(voice?'mic':'speaker',14)+fmt(durOf(p))+'</span></div>'+
     (voice?'<button class="rd" data-act="tr" aria-expanded="'+!!p.open+'">'+ico('text',16)+'<span>'+(p.open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(p.open?'':' hidden')+'>'+words(p.text)+'</p>':'<p class="tr">'+words(p.text)+'</p>')+
     '<div class="react">'+reactHTML(p)+'</div></article>';
 }
@@ -2117,7 +2118,7 @@ function createHTML(){
         '<span class="badge" id="demo-badge" hidden>Démonstration : le micro est indisponible dans cet aperçu, le texte est simulé.</span>'+
         '<div class="row"><button class="btn ghost" data-act="cancel">Annuler</button><button class="rec sm live" data-act="stoprec" aria-label="Terminer l\'enregistrement">'+ico('stop',30)+'</button></div></div>';
     }else{
-      body='<div class="stage left"><div class="player" data-key="d:v"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars('draft'+draft.text)+'</div><span class="dur">'+ico('mic',14)+fmt(draft.dur)+'</span></div>'+
+      body='<div class="stage left"><div class="player" data-key="d:v"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars('draft'+draft.text)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(draft.dur)+'</span></div>'+
         '<label class="lbl" for="dtx">Transcription (tu peux la corriger)</label><textarea id="dtx" class="ta" maxlength="400">'+esc(draft.text)+'</textarea>'+
         '<p class="small" style="margin:0">C\'est ta vraie voix qui sera publiée, avec la transcription à côté.</p>'+
         '<div class="row"><button class="btn ghost" data-act="redo">'+ico('redo',18)+'Refaire</button><button class="btn primary" data-act="publish">Publier</button></div></div>';
@@ -2840,7 +2841,7 @@ function capCardHTML(c,m){
   }
   const key='cp:'+c.id+':'+m.cid;
   return '<div class="capc" data-key="'+key+'"><b>🎁 Capsule ouverte, de la part de '+esc(who)+'</b><p class="small">Écrite il y a '+Math.round((m.unlock-(m.created||m.unlock))/864e5)+' jours, ouverte le '+dFR(m.unlock)+'.</p>'+
-    (m.capkind==='voice'?'<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id,24)+'</div><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div><p class="tr">'+words(m.text)+'</p>':
+    (m.capkind==='voice'?'<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id,24)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div><p class="tr">'+words(m.text)+'</p>':
     '<div class="trow"><p class="tr">'+words(m.text)+'</p><button class="play xs" data-act="play" aria-label="Écouter"><span class="pi" data-e="1">🔊</span></button></div>')+'</div>';
 }
 
@@ -2877,7 +2878,7 @@ function dailyCardHTML(){
   const today=dayStr(Date.now()),done=answeredToday(),list=DA.filter(a=>a.day===today).sort((a,b)=>a.t-b.t);
   return '<div class="daily"><span class="dq">☀️ Vocal du jour</span><h3>'+esc(dqToday())+'</h3>'+
     (done?'':'<button class="btn primary" data-act="dailygo">'+ico('mic',18)+'Répondre en vocal (20 s suffisent)</button><p class="small" style="margin:0">Les réponses de tes amis se débloquent quand tu as répondu.</p>')+
-    (done?(list.length?list.map(a=>{const u=userOf(a.u);return '<div class="da" data-key="da:'+a.id+'"><span class="av">'+avatar(u.a,36)+'</span><div class="cb"><b>'+esc(a.u==='me'?'Toi':u.name)+'</b><div class="player" style="margin-top:4px"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(a.id,18)+'</div><span class="dur">'+ico('mic',14)+fmt(a.dur||5)+'</span></div><p class="tr small">'+esc(a.text)+'</p></div></div>'}).join(''):'<p class="small" style="margin:0">Tu es la première personne à répondre aujourd\'hui.</p>'):'')+'</div>';
+    (done?(list.length?list.map(a=>{const u=userOf(a.u);return '<div class="da" data-key="da:'+a.id+'"><span class="av">'+avatar(u.a,36)+'</span><div class="cb"><b>'+esc(a.u==='me'?'Toi':u.name)+'</b><div class="player" style="margin-top:4px"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(a.id,18)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(a.dur||5)+'</span></div><p class="tr small">'+esc(a.text)+'</p></div></div>'}).join(''):'<p class="small" style="margin:0">Tu es la première personne à répondre aujourd\'hui.</p>'):'')+'</div>';
 }
 A.dailygo=()=>openCapture('Vocal du jour',dqToday(),async r=>{
   const id=uuid(),day=dayStr(Date.now());let audio=null;
@@ -3954,7 +3955,7 @@ function bookHTML(){
     '<button class="btn primary w100" data-act="gbadd">'+ico('mic',16)+'Laisser un vocal</button>'+
     '<button class="btn ghost w100" data-act="gbphoto">📷 Ajouter une photo</button>'+
     (photos.length?'<div class="lbl">Album</div><div class="gbgal">'+photos.map(e=>mediaHTML({media:{path:e.media,t:'image'}})).join('')+'</div>':'')+
-    (nv?'<div class="lbl">Les mots des invités</div><div class="list" style="gap:10px">'+GB.entries.filter(e=>!e.media).map(e=>{const u=userOf(e.u);return '<div class="da" data-key="gb:'+e.id+'"><span class="av">'+avatar(u.a,36)+'</span><div class="cb"><b>'+esc(e.u==='me'?'Toi':u.name)+'</b><div class="player" style="margin-top:4px"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(e.id,18)+'</div><span class="dur">'+ico('mic',14)+fmt(e.dur||5)+'</span></div><p class="tr small">'+esc(e.text)+'</p></div></div>'}).join('')+'</div>':(photos.length?'':'<p class="empty">Sois le premier à laisser un mot ou une photo.</p>'));
+    (nv?'<div class="lbl">Les mots des invités</div><div class="list" style="gap:10px">'+GB.entries.filter(e=>!e.media).map(e=>{const u=userOf(e.u);return '<div class="da" data-key="gb:'+e.id+'"><span class="av">'+avatar(u.a,36)+'</span><div class="cb"><b>'+esc(e.u==='me'?'Toi':u.name)+'</b><div class="player" style="margin-top:4px"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(e.id,18)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(e.dur||5)+'</span></div><p class="tr small">'+esc(e.text)+'</p></div></div>'}).join('')+'</div>':(photos.length?'':'<p class="empty">Sois le premier à laisser un mot ou une photo.</p>'));
 }
 A.gbadd=()=>{
   const id0=GB.id;
@@ -4613,6 +4614,37 @@ A.photodel=()=>{
   toast('Photo retirée.');
   if(view==='me')keepScroll(renderMe);
 };
+/* ---------- Vitesse par vocal (×1, ×1,5, ×2) ---------- */
+const MRATE={},SPEEDS=[1,1.5,2];
+const spdFmt=r=>'×'+String(r).replace('.',',');
+const spdBase=key=>{const p=String(key).split(':');return (p[0]==='m'&&convRate(p[1]))||S.rate||1};
+const spdCur=key=>MRATE[key]||spdBase(key);
+{
+  const _sf=speechFor;
+  speechFor=function(key){const sp=_sf(key);if(sp&&MRATE[key])sp.rateAbs=MRATE[key];return sp};
+}
+A.spd=t=>{
+  const h=t.closest('[data-key]');if(!h)return;
+  const key=h.dataset.key,cur=spdCur(key);
+  const nx=SPEEDS.find(x=>x>cur+0.001)||SPEEDS[0];
+  MRATE[key]=nx;
+  if(np&&np.key===key&&np.audio){try{np.audio.playbackRate=nx}catch(e){}}
+  else if(np&&np.key===key)toast('Vitesse appliquée à la prochaine lecture.');
+  paintSpd();
+};
+function paintSpd(){
+  document.querySelectorAll('.spd').forEach(b=>{
+    const h=b.closest('[data-key]');
+    if(!h){b.hidden=true;return}
+    const key=h.dataset.key,r=spdCur(key),txt=spdFmt(r);
+    if(b.textContent!==txt)b.textContent=txt;
+    if(!!MRATE[key]&&MRATE[key]!==spdBase(key)){if(!b.hasAttribute('data-on'))b.setAttribute('data-on','1')}else if(b.hasAttribute('data-on'))b.removeAttribute('data-on');
+  });
+}
+{
+  let raf=0;
+  new MutationObserver(()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;try{paintSpd()}catch(e){}})}).observe(document.body,{childList:true,subtree:true});
+}
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4661,7 +4693,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792567819';
+const BUILD='1792574936';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
