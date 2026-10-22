@@ -4907,6 +4907,19 @@ document.addEventListener('keydown',e=>{
   if(!touch&&!e.shiftKey){e.preventDefault();sendText()}  /* ordinateur : Entrée envoie, Maj+Entrée = ligne */
 });                                                          /* téléphone : Entrée = nouvelle ligne, bouton pour envoyer */
 new MutationObserver(()=>{const t=document.getElementById('minput');if(t&&!t.dataset.g){t.dataset.g=1;minGrow(t)}}).observe(document.body,{childList:true,subtree:true});
+
+/* ---------- Pastille sur l'icône de l'appli (nombre de messages non lus) ---------- */
+let badgeLast=-1;
+function appBadge(){
+  try{
+    const n=unreadTotal();
+    if(n===badgeLast)return;badgeLast=n;
+    if(n>0&&navigator.setAppBadge)navigator.setAppBadge(n).catch(()=>{});
+    else if(navigator.clearAppBadge)navigator.clearAppBadge().catch(()=>{});
+  }catch(e){}
+}
+setInterval(appBadge,2000);
+document.addEventListener('visibilitychange',()=>{badgeLast=-1;appBadge()});
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4955,7 +4968,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792594448';
+const BUILD='1792654270';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
