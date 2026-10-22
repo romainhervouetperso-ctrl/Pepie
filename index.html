@@ -371,8 +371,34 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .vopost{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 12px;margin-bottom:10px}.voh{display:flex;align-items:center;gap:8px;margin-bottom:8px}.voh small{color:var(--muted)}.tabs .tab{font-size:10.5px}
 .lnk{background:none;border:0;color:var(--blue,#2F5BFF);font:inherit;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}.obban{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FFE9C7;color:#3B1A12;border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600}
 .pshare{margin-top:4px;background:var(--soft);border-radius:99px;padding:2px 8px;color:var(--ink)!important}.pit .ptxt small{display:block}
+
+#splash{position:fixed;inset:0;z-index:9999;background:#FFA98A;display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+#splash.out{opacity:0;pointer-events:none}
+.spl-in{display:flex;flex-direction:column;align-items:center;gap:0;padding:16px}
+#splash .bird{animation:splpop .9s cubic-bezier(.3,1.5,.5,1) both;margin-bottom:22px;overflow:visible}
+@keyframes splpop{0%{transform:translateY(-30px) scale(.2) rotate(-20deg);opacity:0}100%{transform:none;opacity:1}}
+.spl-t{font:800 40px/1 var(--font-display,system-ui),system-ui;color:#3B1A12;letter-spacing:.02em;opacity:0;animation:splin .5s .6s forwards}
+.spl-s{font:600 15px system-ui;color:#3B1A12;opacity:0;margin-top:8px;animation:splin .5s .85s forwards}
+.spl-d{margin-top:22px;opacity:0;animation:splin .4s 1s forwards}.spl-d span{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3B1A12;margin:0 4px;animation:spldot 1s infinite}.spl-d span:nth-child(2){animation-delay:.15s}.spl-d span:nth-child(3){animation-delay:.3s}
+@keyframes splin{to{opacity:1}}@keyframes spldot{0%,100%{opacity:.25}50%{opacity:1}}
+.mas{display:inline-block;position:relative;line-height:0}.mas .bird{overflow:visible}.mas .lid{display:none}
+.mas .head{transform-origin:50px 52px}.mas .wing{transform-origin:62px 58px}
+.mas.listen .head{animation:mtilt 1.6s ease-in-out infinite}@keyframes mtilt{0%,100%{transform:rotate(0)}30%,70%{transform:rotate(-14deg)}}
+.mas.send .wing{animation:mflap .35s ease-in-out infinite}.mas.send .bird{animation:mhop .7s ease-in-out infinite}
+@keyframes mflap{0%,100%{transform:rotate(0)}50%{transform:rotate(-38deg)}}@keyframes mhop{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.mas.happy .bird{animation:mjump 1.2s ease-in-out infinite}@keyframes mjump{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-14px) rotate(-4deg)}}
+.mas.look .head{animation:mlook 3.5s ease-in-out infinite}@keyframes mlook{0%,100%{transform:rotate(0)}25%{transform:rotate(10deg)}60%{transform:rotate(-10deg)}}
+.mas.sleep .eye{display:none}.mas.sleep .lid{display:block}.mas.sleep .bird{animation:mbreath 3s ease-in-out infinite}@keyframes mbreath{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.mas .zz{position:absolute;left:6%;top:0;font-weight:800;font-size:14px;line-height:1;color:var(--muted,#8A5F52)}.mas .zz i{position:absolute;font-style:normal;opacity:0;animation:mz 3s infinite}.mas .zz i:nth-child(2){animation-delay:1s}.mas .zz i:nth-child(3){animation-delay:2s}
+@keyframes mz{0%{opacity:0;transform:translate(0,0)}30%{opacity:1}100%{opacity:0;transform:translate(12px,-22px)}}
+.mas.sing .beak{animation:mbeak .4s steps(2) infinite}.mas .note{position:absolute;left:4%;top:20%;font-size:18px;line-height:1;opacity:0;animation:mnote 2s infinite}
+@keyframes mbeak{50%{transform:translateY(2px)}}@keyframes mnote{0%{opacity:0;transform:translate(0,0)}30%{opacity:1}100%{opacity:0;transform:translate(26px,-30px)}}
+.emptyb{display:flex;justify-content:center;padding:14px 0 0}
+#mfly{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:50;pointer-events:none;transition:opacity .4s}#mfly.out{opacity:0}
+@media (prefers-reduced-motion:reduce){#splash *,.mas,.mas *,#mfly *{animation:none!important}}
 </style>
 
+<div id="splash" role="status" aria-label="Chargement de Pépie"><div class="spl-in"><svg class="bird" viewBox="0 0 100 100" style="width:110px;height:110px"><g class="body"><ellipse cx="50" cy="62" rx="30" ry="26" fill="#FFF3EC"/><path class="wing" d="M58 54c14 0 22 10 18 22-10 2-22-6-18-22z" fill="#FFD2BF"/></g><g class="head"><circle cx="46" cy="40" r="22" fill="#FFF3EC"/><path d="M40 20c2-8 8-10 12-8-2 3-2 6 0 10z" fill="#FFD2BF"/><path d="M26 40l-14 5 14 5z" fill="#2F5BFF"/><circle cx="38" cy="37" r="3.6" fill="#3B1A12"/><circle cx="36" cy="46" r="3.2" fill="#FF7B7B" opacity=".5"/></g><path d="M44 86v8M56 86v8" stroke="#2F5BFF" stroke-width="3" stroke-linecap="round"/></svg><div class="spl-t">Pépie</div><div class="spl-s">Ici, on s'entend.</div><div class="spl-d"><span></span><span></span><span></span></div></div></div>
 <div class="app" id="app">
   <header class="top gut" id="top" hidden>
     <div class="logo">
@@ -1646,7 +1672,7 @@ function renderComposer(){
   const f=$('#mform');if(!f)return;
   if(chatRec){
     f.innerHTML='<button type="button" class="cbtn" data-act="reccancel" aria-label="Annuler l\'enregistrement">'+ico('close',18)+'</button>'+
-      '<div class="recbar"><span class="recdot"></span><div class="rt2"><b id="cTimer">0:00</b><span id="cLive">Je t\'écoute…</span></div></div>'+
+      '<div class="recbar">'+mascot('listen',38)+'<span class="recdot"></span><div class="rt2"><b id="cTimer">0:00</b><span id="cLive">Je t\'écoute…</span></div></div>'+
       '<button type="button" class="cbtn pri" data-act="recsend" aria-label="Envoyer le vocal">'+ico('send',20)+'</button>';
     return;
   }
@@ -2583,9 +2609,9 @@ async function startApp(uid2){
   $('#v-onboard').innerHTML='<p class="empty" style="padding:40px 0">Chargement…</p>';
   try{
     const r=await sb.auth.getSession();
-    if(r.data&&r.data.session){await startApp(r.data.session.user.id);return}
+    if(r.data&&r.data.session){await startApp(r.data.session.user.id);hideSplash();return}
   }catch(e){}
-  renderOnboard();
+  renderOnboard();hideSplash();
 })();
 /* =====================================================================
    Pépie v4 : fonctions fun et sociales
@@ -3225,7 +3251,7 @@ function renderChats(){
   const moreH='<details class="more"><summary>Plus d\'options</summary><div class="pills"><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div><div class="sect" style="margin-top:10px">Jeux</div>'+gamesHTML().replace('<div class="sect">QG des jeux</div>','')+'</details>';
   const fabH='<button class="fabw" data-act="newchat" aria-label="Nouvelle discussion">✏️</button>';
   if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
-  html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
+  html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):emptyScene('look',92)+'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
   html+=moreH+fabH;
   $('#v-chats').innerHTML=html;
   renderTabs();
@@ -5140,7 +5166,7 @@ function pbCount(b){
 }
 function renderPerch(){
   const el=$('#v-perch');if(!el)return;
-  if(!PB.loaded){el.innerHTML='<div class="vhead"><h1 class="h1">Le Perchoir</h1></div><p class="small">Chargement…</p>';pbLoad();return}
+  if(!PB.loaded){el.innerHTML='<div class="vhead"><h1 class="h1">Le Perchoir</h1></div>'+emptyScene('look',70)+'<p class="small" style="text-align:center">Chargement…</p>';pbLoad();return}
   if(PB.open&&!pbBox(PB.open))PB.open=null;
   el.innerHTML=PB.open?pbBoxHTML(pbBox(PB.open)):pbHomeHTML();
   renderTabs();
@@ -5160,18 +5186,18 @@ function pbBoxHTML(b){
   if(b.kind==='list'){
     const todo=it.filter(i=>!i.done),done=it.filter(i=>i.done);
     h+='<div class="padd2"><input id="pin" class="pinp" placeholder="Ajouter (ex : lait, pain)" aria-label="Ajouter"><button class="btn" data-act="pinadd">Ajouter</button></div>';
-    h+='<div class="plist">'+(todo.length?todo.map(pbItemHTML).join(''):'<p class="empty">Rien à faire ici 🎉</p>')+'</div>';
+    h+='<div class="plist">'+(todo.length?todo.map(pbItemHTML).join(''):emptyScene('happy',84)+'<p class="empty">Rien à faire ici 🎉</p>')+'</div>';
     if(done.length)h+='<div class="sect">Fait · '+done.length+'</div><div class="plist">'+done.map(pbItemHTML).join('')+'</div><button class="btn ghost w100" data-act="pclear">Vider les éléments cochés</button>';
     h+='<button class="btn w100 pbig" data-act="pdict" data-mode="list" data-id="'+b.id+'">'+ico('mic',20)+'Dicter une liste</button>'+
        '<p class="small" style="margin:8px 0 0">Dis par exemple : « du lait, du pain et des pommes ». Chaque élément devient une case à cocher.</p>';
   }else if(b.kind==='notes'){
     h+='<div class="padd2"><input id="pin" class="pinp" placeholder="Écrire une note" aria-label="Note"><button class="btn" data-act="pinadd">Ajouter</button></div>';
-    h+='<div class="plist">'+(it.length?it.slice().reverse().map(n=>'<div class="pnote"><p>'+esc(n.text).replace(/\n/g,'<br>')+'</p><div class="pnr"><span>'+(n.owner&&n.owner!==myId?esc(nameOf(n.owner))+' · ':'')+esc(new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}))+'</span><span><button class="pill" data-act="pclean" data-id="'+n.id+'">✨ Nettoyer</button><button class="pill" data-act="pedit" data-id="'+n.id+'">Modifier</button><button class="pill" data-act="pcopy" data-id="'+n.id+'">Copier</button></span></div></div>').join(''):'<p class="empty">Aucune note. Dicte la première !</p>')+'</div>';
+    h+='<div class="plist">'+(it.length?it.slice().reverse().map(n=>'<div class="pnote"><p>'+esc(n.text).replace(/\n/g,'<br>')+'</p><div class="pnr"><span>'+(n.owner&&n.owner!==myId?esc(nameOf(n.owner))+' · ':'')+esc(new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}))+'</span><span><button class="pill" data-act="pclean" data-id="'+n.id+'">✨ Nettoyer</button><button class="pill" data-act="pedit" data-id="'+n.id+'">Modifier</button><button class="pill" data-act="pcopy" data-id="'+n.id+'">Copier</button></span></div></div>').join(''):emptyScene('look',84)+'<p class="empty">Aucune note. Dicte la première !</p>')+'</div>';
     h+='<button class="btn w100 pbig" data-act="pdict" data-mode="notes" data-id="'+b.id+'">'+ico('mic',20)+'Dicter une note</button>';
   }else{
     const up=it.filter(i=>!i.notified).sort((a,b2)=>new Date(a.fire_at||a.due)-new Date(b2.fire_at||b2.due)),past=it.filter(i=>i.notified).sort((a,b2)=>new Date(b2.due)-new Date(a.due));
     const rowR=r=>'<div class="pit'+(r.notified?' pdone':'')+'"><button class="ptxt" data-act="prem" data-id="'+r.id+'"><b>'+esc(r.text)+'</b><small>⏰ '+esc(pbWhen(r.due))+(r.lead?' · alerte '+esc((PB_LEAD.find(l=>l[0]===r.lead)||[0,r.lead+' min avant'])[1]):'')+'</small></button><button class="px" data-act="pidel" data-id="'+r.id+'" aria-label="Supprimer">✕</button></div>';
-    h+='<div class="plist">'+(up.length?up.map(rowR).join(''):'<p class="empty">Aucun rappel à venir.</p>')+'</div>';
+    h+='<div class="plist">'+(up.length?up.map(rowR).join(''):emptyScene('sleep',84)+'<p class="empty">Aucun rappel à venir.</p>')+'</div>';
     if(past.length)h+='<div class="sect">Passés</div><div class="plist">'+past.slice(0,10).map(rowR).join('')+'</div>';
     h+=(S.push?'':'<p class="small" style="margin:6px 0">🔔 Active les notifications dans « Mon Plumage » pour recevoir tes rappels.</p>')+
        '<button class="btn w100" data-act="prem" data-id="">＋ Nouveau rappel</button><button class="btn w100 pbig" data-act="pdict" data-mode="rem" data-id="'+b.id+'">'+ico('mic',20)+'Dicter un rappel</button>';
@@ -5349,7 +5375,7 @@ const PBD={mode:'',box:''};
 A.pdict=t=>{
   PBD.mode=t.dataset.mode;PBD.box=t.dataset.id||'';
   const hint={home:'Dis une note, ou « rappelle-moi demain à 18h de… ».',list:'Dis les éléments à la suite : « du lait, du pain et des pommes ».',notes:'Dis ta note, comme dans un message vocal.',rem:'Ex : « rappelle-moi demain à 18h d\'appeler le plombier ».'}[PBD.mode]||'';
-  openSheet(sheetHead('Je t\'écoute')+'<div class="pdl" id="pdl">…</div><p class="small" style="margin:0">'+esc(hint)+'</p>'+
+  openSheet(sheetHead('Je t\'écoute')+'<div style="text-align:center">'+mascot('listen',64)+'</div><div class="pdl" id="pdl">…</div><p class="small" style="margin:0">'+esc(hint)+'</p>'+
     '<div class="prow2"><button class="btn" data-act="pdstop">'+ico('check',18).replace(/^$/,'')+'Terminer</button><button class="btn ghost" data-act="close">Annuler</button></div>');
   CAP={rec:true};
   recStart({max:180,live:s=>{const e=$('#pdl');if(e)e.textContent=s||'…'},tick:()=>{},done:r=>{
@@ -5419,7 +5445,7 @@ function pcHTML(){
   const photo=PCS.blob?'<div class="pcfront pcprev"><img src="'+PCS.url+'" alt="Ta photo"><button class="pill" data-act="pcpick" style="position:absolute;right:10px;top:10px">Changer</button></div>'
     :'<button class="btn w100 pbig" data-act="pcpick" style="margin:0">📷 Choisir ou prendre une photo</button>';
   let voice;
-  if(PCS.recording)voice='<div class="pdl" id="pcLive">…</div><div class="prow2"><b id="pcT" style="flex:1">0:00 / 0:20</b><button class="btn" data-act="pcstop">Terminer</button></div>';
+  if(PCS.recording)voice='<div style="text-align:center">'+mascot('listen',56)+'</div><div class="pdl" id="pcLive">…</div><div class="prow2"><b id="pcT" style="flex:1">0:00 / 0:20</b><button class="btn" data-act="pcstop">Terminer</button></div>';
   else if(PCS.rec)voice='<div class="pdl" style="min-height:0">'+esc(PCS.rec.text||'(pas de transcription)')+'</div><div class="prow2"><button class="btn ghost" data-act="pcplay">▶ Écouter</button><button class="btn ghost" data-act="pcrec">🎙️ Refaire</button></div>';
   else voice='<button class="btn w100 pbig" data-act="pcrec" style="margin:0">🎙️ Enregistrer ta voix (20 s max)</button>';
   return sheetHead('Carte postale')+photo+
@@ -5474,7 +5500,7 @@ A.pcsend=async()=>{
   obSendMsg(c,m,files);
   PCS.url='';PCS.blob=null;closeSheet();
   if(view==='chat'&&cur===c.id)renderMsgs(true);
-  toast('Carte postale envoyée 💌');
+  toast('Carte postale envoyée 💌');mascotFly('send');
 };
 /* =====================  LA VOLIÈRE : le fil des amis (remplace « Aujourd'hui »)  ===================== */
 function voFeedItems(){
@@ -5509,7 +5535,7 @@ renderFeed=function(){
     dailyCardHTML()+
     '<div class="chips" style="margin:2px 0 4px"><button class="chip" data-act="radio">📻 Radio des amis</button></div>'+
     '<div class="sect">Le fil de tes amis</div>'+
-    (items.length?items.map(voItemHTML).join(''):'<p class="empty">Rien pour l\'instant. Les cartes postales et les statuts vocaux de tes amis arrivent ici.</p>')+
+    (items.length?items.map(voItemHTML).join(''):emptyScene('sleep',92)+'<p class="empty">Rien pour l\'instant. Les cartes postales et les statuts vocaux de tes amis arrivent ici.</p>')+
     '<p class="small" style="margin:6px 0 0">Les défis et les jeux sont dans Pia-pia. Tes anciennes publications sont dans Mon Plumage.</p>';
   renderTabs();hydrateMedia();
   if(np)paintKey(np.key);
@@ -5571,6 +5597,7 @@ function sendVoiceTo(c,r){
     obSendMsg(c,m,[{bucket:'voices',path:path,blob:r.blob,mime:r.mime||'audio/webm'}]);
   }else addMsg(c,m);
   if(cur===c.id){replyTo=null;renderComposer();renderReplyBar();renderMsgs(true)}
+  mascotFly('send');
 }
 sendVoice=function(r){const c=conv(cur);if(c)sendVoiceTo(c,r)};
 
@@ -5660,6 +5687,28 @@ setInterval(()=>{
   if(!OB.resumed){OB.resumed=true;obResume()}
   if(!OB.recChecked&&convs.length){OB.recChecked=true;obRecCheck()}
 },3000);
+/* =====================  MASCOTTE ANIMÉE (Pépie) + écran de démarrage  ===================== */
+const BIRD='<g class="body"><ellipse cx="50" cy="62" rx="30" ry="26" fill="#FFA98A"/><path class="wing" d="M58 54c14 0 22 10 18 22-10 2-22-6-18-22z" fill="#FF8D68"/></g><g class="head"><circle cx="46" cy="40" r="22" fill="#FFA98A"/><path d="M40 20c2-8 8-10 12-8-2 3-2 6 0 10z" fill="#FF8D68"/><g class="beak"><path d="M26 40l-14 5 14 5z" fill="#2F5BFF"/></g><circle class="eye" cx="38" cy="37" r="3.6" fill="#3B1A12"/><path class="lid" d="M34 38q4 4 8 0" stroke="#3B1A12" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="36" cy="46" r="3.2" fill="#FF7B7B" opacity=".5"/></g><path d="M44 86v8M56 86v8" stroke="#2F5BFF" stroke-width="3" stroke-linecap="round"/>';
+/* mood : listen | send | happy | sing | sleep | look */
+function mascot(mood,size){
+  const s=size||80;
+  return '<span class="mas '+mood+'" aria-hidden="true"><svg class="bird" viewBox="0 0 100 100" style="width:'+s+'px;height:'+s+'px">'+BIRD+'</svg>'+
+    (mood==='sleep'?'<span class="zz"><i>z</i><i>z</i><i>Z</i></span>':'')+(mood==='sing'?'<span class="note">♪</span>':'')+'</span>';
+}
+const emptyScene=(mood,size)=>'<div class="emptyb">'+mascot(mood,size||88)+'</div>';
+function mascotFly(mood){
+  const old=document.getElementById('mfly');if(old)old.remove();
+  const d=document.createElement('div');d.id='mfly';d.innerHTML=mascot(mood||'send',64);document.body.appendChild(d);
+  setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),400)},1200);
+}
+/* écran de démarrage : reste au moins 1,2 s pour finir son animation, puis disparaît */
+function hideSplash(){
+  const s=document.getElementById('splash');if(!s||s.dataset.gone)return;
+  s.dataset.gone='1';
+  const left=Math.max(0,1300-(performance.now()));
+  setTimeout(()=>{s.classList.add('out');setTimeout(()=>s.remove(),450)},left);
+}
+setTimeout(hideSplash,12000);
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -5708,7 +5757,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792679394';
+const BUILD='1792679816';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
