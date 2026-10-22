@@ -370,6 +370,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .pcprev{transform:none;margin-bottom:12px}.pcprev::after{content:none}
 .vopost{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 12px;margin-bottom:10px}.voh{display:flex;align-items:center;gap:8px;margin-bottom:8px}.voh small{color:var(--muted)}.tabs .tab{font-size:10.5px}
 .lnk{background:none;border:0;color:var(--blue,#2F5BFF);font:inherit;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}.obban{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FFE9C7;color:#3B1A12;border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600}
+.pshare{margin-top:4px;background:var(--soft);border-radius:99px;padding:2px 8px;color:var(--ink)!important}.pit .ptxt small{display:block}
 </style>
 
 <div class="app" id="app">
@@ -4958,7 +4959,7 @@ function appBadge(){
 setInterval(appBadge,2000);
 document.addEventListener('visibilitychange',()=>{badgeLast=-1;appBadge()});
 /* =====================  LE PERCHOIR : pense-bête perso (courses, à faire, idées, rappels)  ===================== */
-const PB={boxes:[],items:[],loaded:false,loading:false,open:null};
+const PB={boxes:[],items:[],members:[],loaded:false,loading:false,open:null,sig:''};
 const PB_EMO=['🛒','✅','💡','⏰','📥','🎁','🏠','💼','🎬','📚','✈️','🍽️'];
 const PB_KIND={list:'Liste à cocher',notes:'Notes',reminders:'Rappels'};
 const PB_LEAD=[[0,"À l'heure"],[5,'5 min avant'],[10,'10 min avant'],[15,'15 min avant'],[30,'30 min avant'],[60,'1 h avant'],[120,'2 h avant'],[1440,'1 jour avant'],[2880,'2 jours avant']];
@@ -4987,18 +4988,29 @@ async function pbLoad(force){
     const rb=await sb.from('perch_boxes').select('*').order('pos',{ascending:true}).order('created_at',{ascending:true});
     if(pbErr(rb))return;
     let boxes=rb.data||[];
-    if(!boxes.length){
+    if(!boxes.some(b=>b.owner===myId)){
       const base=[['En vrac','📥','notes'],['Courses','🛒','list'],['À faire','✅','list'],['Idées','💡','notes'],['Rappels','⏰','reminders']];
       const rows=base.map((b,i)=>({id:uuid(),name:b[0],emoji:b[1],kind:b[2],pos:i}));
       const ri=await sb.from('perch_boxes').insert(rows);
       if(pbErr(ri))return;
-      boxes=rows;
+      boxes=boxes.concat(rows.map(r=>Object.assign({owner:myId},r)));
     }
     const ri2=await sb.from('perch_items').select('*').order('created_at',{ascending:true}).limit(2000);
     if(pbErr(ri2))return;
+    const rm=await sb.from('perch_members').select('*');
+    PB.members=(rm.data||[]);
     PB.boxes=boxes;PB.items=ri2.data||[];PB.loaded=true;
+    const ids=new Set();boxes.forEach(b=>ids.add(b.owner));PB.members.forEach(m=>ids.add(m.user_id));PB.items.forEach(i=>ids.add(i.owner));
+    try{await ensureProfiles(Array.from(ids).filter(x=>x&&x!==myId))}catch(e){}
   }finally{PB.loading=false}
-  if(view==='perch')renderPerch();
+  const sig=JSON.stringify([PB.boxes,PB.items.map(i=>[i.id,i.text,i.done,i.due]),PB.members]);
+  if(view==='perch'&&(sig!==PB.sig||force===true&&!PB.sig)){
+    const ae=document.activeElement;
+    const typing=ae&&(ae.id==='pin'||ae.tagName==='TEXTAREA')&&ae.value;
+    const sheetOpen=!$('#sheet').hidden;
+    if(!typing&&!sheetOpen)renderPerch();
+  }
+  PB.sig=sig;
 }
 
 /* ---------- Analyse de la voix ---------- */
@@ -5113,6 +5125,13 @@ function pbParse(raw){
 }
 
 /* ---------- Écran du Perchoir ---------- */
+const pbMembersOf=id=>PB.members.filter(m=>m.box===id);
+function pbShareTag(b){
+  if(b.owner&&b.owner!==myId)return '<small class="pshare">👥 de '+esc(nameOf(b.owner))+'</small>';
+  const n=pbMembersOf(b.id).length;
+  return n?'<small class="pshare">👥 avec '+n+' personne'+(n>1?'s':'')+'</small>':'';
+}
+const pbShared=b=>!!b&&((b.owner&&b.owner!==myId)||pbMembersOf(b.id).length>0);
 function pbCount(b){
   const it=pbItems(b.id);
   if(b.kind==='list'){const n=it.filter(i=>!i.done).length;return n?n+(n>1?' à faire':' à faire'):'Rien à faire'}
@@ -5130,7 +5149,7 @@ function pbHomeHTML(){
   const boxes=PB.boxes.slice().sort((a,b)=>a.pos-b.pos);
   return '<div class="vhead"><h1 class="h1">🪺 Le Perchoir</h1></div>'+
     '<p class="small" style="margin:0 0 10px">Ton pense-bête perso. Parle ou écris, Pépie range.</p>'+
-    '<div class="pgrid">'+boxes.map(b=>'<button class="pbox" data-act="pbox" data-id="'+b.id+'"><span class="pe">'+esc(b.emoji)+'</span><b>'+esc(b.name)+'</b><small>'+esc(pbCount(b))+'</small></button>').join('')+
+    '<div class="pgrid">'+boxes.map(b=>'<button class="pbox" data-act="pbox" data-id="'+b.id+'"><span class="pe">'+esc(b.emoji)+'</span><b>'+esc(b.name)+'</b><small>'+esc(pbCount(b))+'</small>'+pbShareTag(b)+'</button>').join('')+
     '<button class="pbox padd" data-act="pnew">＋ Nouvelle boîte</button></div>'+
     '<button class="btn w100 pbig" data-act="pdict" data-mode="home">'+ico('mic',20)+'Noter à la voix</button>'+
     '<p class="small" style="margin:8px 0 0">Astuce : dis « rappelle-moi demain à 18h d\'appeler le plombier » pour créer un rappel directement.</p>';
@@ -5147,7 +5166,7 @@ function pbBoxHTML(b){
        '<p class="small" style="margin:8px 0 0">Dis par exemple : « du lait, du pain et des pommes ». Chaque élément devient une case à cocher.</p>';
   }else if(b.kind==='notes'){
     h+='<div class="padd2"><input id="pin" class="pinp" placeholder="Écrire une note" aria-label="Note"><button class="btn" data-act="pinadd">Ajouter</button></div>';
-    h+='<div class="plist">'+(it.length?it.slice().reverse().map(n=>'<div class="pnote"><p>'+esc(n.text).replace(/\n/g,'<br>')+'</p><div class="pnr"><span>'+esc(new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}))+'</span><span><button class="pill" data-act="pclean" data-id="'+n.id+'">✨ Nettoyer</button><button class="pill" data-act="pedit" data-id="'+n.id+'">Modifier</button><button class="pill" data-act="pcopy" data-id="'+n.id+'">Copier</button></span></div></div>').join(''):'<p class="empty">Aucune note. Dicte la première !</p>')+'</div>';
+    h+='<div class="plist">'+(it.length?it.slice().reverse().map(n=>'<div class="pnote"><p>'+esc(n.text).replace(/\n/g,'<br>')+'</p><div class="pnr"><span>'+(n.owner&&n.owner!==myId?esc(nameOf(n.owner))+' · ':'')+esc(new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}))+'</span><span><button class="pill" data-act="pclean" data-id="'+n.id+'">✨ Nettoyer</button><button class="pill" data-act="pedit" data-id="'+n.id+'">Modifier</button><button class="pill" data-act="pcopy" data-id="'+n.id+'">Copier</button></span></div></div>').join(''):'<p class="empty">Aucune note. Dicte la première !</p>')+'</div>';
     h+='<button class="btn w100 pbig" data-act="pdict" data-mode="notes" data-id="'+b.id+'">'+ico('mic',20)+'Dicter une note</button>';
   }else{
     const up=it.filter(i=>!i.notified).sort((a,b2)=>new Date(a.fire_at||a.due)-new Date(b2.fire_at||b2.due)),past=it.filter(i=>i.notified).sort((a,b2)=>new Date(b2.due)-new Date(a.due));
@@ -5159,7 +5178,7 @@ function pbBoxHTML(b){
   }
   return h;
 }
-const pbItemHTML=i=>'<div class="pit'+(i.done?' pdone':'')+'"><button class="pck'+(i.done?' on':'')+'" data-act="pchk" data-id="'+i.id+'" aria-label="'+(i.done?'Décocher':'Cocher')+'">'+(i.done?'✓':'')+'</button><button class="ptxt" data-act="pedit" data-id="'+i.id+'"><b>'+esc(i.text)+'</b></button><button class="px" data-act="pidel" data-id="'+i.id+'" aria-label="Supprimer">✕</button></div>';
+const pbItemHTML=i=>'<div class="pit'+(i.done?' pdone':'')+'"><button class="pck'+(i.done?' on':'')+'" data-act="pchk" data-id="'+i.id+'" aria-label="'+(i.done?'Décocher':'Cocher')+'">'+(i.done?'✓':'')+'</button><button class="ptxt" data-act="pedit" data-id="'+i.id+'"><b>'+esc(i.text)+'</b>'+(i.owner&&i.owner!==myId&&pbShared(pbBox(i.box))?'<small>ajouté par '+esc(nameOf(i.owner))+'</small>':'')+'</button><button class="px" data-act="pidel" data-id="'+i.id+'" aria-label="Supprimer">✕</button></div>';
 
 /* ---------- Actions ---------- */
 function pbAdd(boxId,texts,extra){
@@ -5235,11 +5254,43 @@ A.pnok=()=>{
   PB.boxes.push(Object.assign({owner:myId},b));closeSheet();PB.open=b.id;renderPerch();
   sb.from('perch_boxes').insert(b).then(r=>{if(pbErr(r))pbLoad(true)});
 };
-A.pmenu=()=>{
+A.pmenu=async()=>{
   const b=pbBox(PB.open);if(!b)return;
+  if(b.owner&&b.owner!==myId){
+    openSheet(sheetHead('Boîte partagée')+'<p class="small" style="margin:0">« '+esc(b.name)+' » appartient à '+esc(nameOf(b.owner))+'. Tu peux la modifier avec lui ou elle.</p><button class="btn ghost w100" data-act="pleave">Quitter cette boîte</button>');
+    return;
+  }
+  if(b.kind!=='reminders'&&!friendsLoaded){try{await loadFriends()}catch(e){}}
   openSheet(sheetHead('Cette boîte')+'<div class="group"><div class="lbl">Nom</div><input id="pmN" class="pinp" maxlength="40" value="'+esc(b.name)+'"></div>'+
     '<div class="group"><div class="lbl">Icône</div><div class="chips" id="pnE">'+PB_EMO.map(e=>'<button class="chip" data-act="pnemo" data-e="'+e+'" aria-pressed="'+(e===b.emoji)+'">'+e+'</button>').join('')+'</div></div>'+
+    (b.kind==='reminders'?'<p class="small" style="margin:0">Les rappels sont personnels : ils ne se partagent pas.</p>':pbShareHTML(b))+
     '<div class="prow2"><button class="btn" data-act="pmok">Enregistrer</button><button class="btn ghost" data-act="pmdel1">Supprimer la boîte</button></div>');
+};
+function pbShareHTML(b){
+  const mem=new Set(pbMembersOf(b.id).map(m=>m.user_id));
+  const ppl=FRIENDS.filter(id=>id!==myId&&U[id]);
+  return '<div class="group"><div class="lbl">Partager avec</div>'+(ppl.length?'<div class="chips" id="pshr">'+ppl.map(id=>'<button class="chip" data-act="pshare" data-u="'+id+'" aria-pressed="'+mem.has(id)+'">'+esc(U[id].name)+'</button>').join('')+'</div><p class="small" style="margin:6px 0 0">Les personnes cochées voient et modifient cette boîte avec toi.</p>':'<p class="small" style="margin:0">Personne à qui partager pour l\'instant.</p>')+'</div>';
+}
+A.pshare=async t=>{
+  const b=pbBox(PB.open);if(!b)return;
+  const u=t.dataset.u,on=t.getAttribute('aria-pressed')==='true';
+  t.disabled=true;
+  if(on){
+    const r=await sb.from('perch_members').delete().eq('box',b.id).eq('user_id',u);
+    t.disabled=false;if(pbErr(r))return;
+    PB.members=PB.members.filter(m=>!(m.box===b.id&&m.user_id===u));t.setAttribute('aria-pressed','false');
+  }else{
+    const r=await sb.rpc('perch_share',{b:b.id,u:u});
+    t.disabled=false;if(pbErr(r))return;
+    PB.members.push({box:b.id,user_id:u});t.setAttribute('aria-pressed','true');toast('Boîte partagée avec '+nameOf(u)+' ✔');
+  }
+  renderPerch();
+};
+A.pleave=async()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  const r=await sb.from('perch_members').delete().eq('box',b.id).eq('user_id',myId);
+  if(pbErr(r))return;
+  PB.boxes=PB.boxes.filter(x=>x.id!==b.id);PB.items=PB.items.filter(i=>i.box!==b.id);PB.members=PB.members.filter(m=>m.box!==b.id);PB.open=null;closeSheet();renderPerch();toast('Tu as quitté la boîte');
 };
 A.pmok=()=>{
   const b=pbBox(PB.open);if(!b)return;
@@ -5249,7 +5300,7 @@ A.pmok=()=>{
   sb.from('perch_boxes').update({name:b.name,emoji:b.emoji}).eq('id',b.id).then(r=>{if(pbErr(r))pbLoad(true)});
 };
 A.pmdel1=()=>{
-  const b=pbBox(PB.open);if(!b)return;
+  const b=pbBox(PB.open);if(!b||(b.owner&&b.owner!==myId))return;
   const n=pbItems(b.id).length;
   setSheet(sheetHead('Supprimer la boîte ?')+'<p class="small" style="margin:0">« '+esc(b.name)+' » et ses '+n+' élément'+(n>1?'s':'')+' seront supprimés définitivement.</p>'+
     '<div class="prow2"><button class="btn" data-act="pmdel2">Oui, supprimer</button><button class="btn ghost" data-act="close">Annuler</button></div>');
@@ -5343,6 +5394,7 @@ A.pvok=t=>{
 };
 
 /* ---------- Navigation : on recharge à l'ouverture ---------- */
+setInterval(()=>{if(view==='perch'&&PB.loaded&&!document.hidden)pbLoad(true)},15000);
 function perchEnter(){PB.open=null;renderPerch();pbLoad(true)}
 /* =====================  CARTE POSTALE VOCALE : une photo + 20 secondes de voix  ===================== */
 const PCS={blob:null,url:'',w:0,h:0,rec:null,cap:'',busy:false,au:null,recording:false};
@@ -5656,7 +5708,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792679209';
+const BUILD='1792679394';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
