@@ -1457,7 +1457,7 @@ const unreadTotal=()=>convs.reduce((n,c)=>n+(c.unread||0),0);
 function renderTabs(){
   const u=unreadTotal();
   $('#tabs').innerHTML=
-    '<button class="tab" data-act="go" data-to="chats"><span class="pill">'+ico('comment',22)+'</span>Discussions'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
+    '<button class="tab" data-act="go" data-to="chats"><span class="pill">'+ico('comment',22)+'</span>Pia-pia'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
     '<button class="tab" data-act="go" data-to="feed"><span class="pill">'+ico('sparkle',22)+'</span>Aujourd\'hui</button>'+
     '<button class="tab" data-act="go" data-to="perch"><span class="pill">🪺</span>Perchoir</button>'+
     '<button class="tab" data-act="go" data-to="me"><span class="pill">'+ico('user',22)+'</span>Moi</button>';
@@ -5472,7 +5472,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792676174';
+const BUILD='1792676889';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
