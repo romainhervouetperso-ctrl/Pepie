@@ -363,6 +363,11 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .pnr .pill{padding:4px 10px;font-size:12px}
 .prow2{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}.prow2 .btn{flex:1}
 .pdl{min-height:90px;border:2px dashed var(--line);border-radius:14px;padding:12px;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.pcfront{position:relative;background:#fff;padding:6px 6px 26px;border-radius:6px;box-shadow:0 2px 8px #0003;transform:rotate(-1deg);margin-bottom:8px;max-width:100%}
+.pcfront .mmedia{border-radius:3px;overflow:hidden}.pcfront img{width:100%;display:block;border-radius:3px}
+.pccap{position:absolute;left:8px;right:8px;bottom:4px;text-align:center;font:italic 700 13px/1.2 system-ui,sans-serif;color:#3B1A12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcfront::after{content:"💌";position:absolute;right:10px;top:10px;font-size:18px;filter:drop-shadow(0 1px 2px #0004)}
+.pcprev{transform:none;margin-bottom:12px}.pcprev::after{content:none}
 </style>
 
 <div class="app" id="app">
@@ -787,7 +792,7 @@ function scanBanned(c,m,silent){
   c.scores[m.f]=(c.scores[m.f]||0)+1;
   if(!silent)c.msgs.push({id:uuid(),f:'sys',k:'sys',text:'Mot interdit : '+nameOf(m.f)+' a dit « '+c.banned+' » (+1)',t:Date.now(),rx:{},my:[]});
 }
-const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor','quiz','qs','media','oq','edited','del'];
+const META_KEYS=['re','tag','lv','lvl','title','fb','audio','stk','poll','chal','chor','quiz','qs','media','pc','oq','edited','del'];
 function addMsg(c,m,pre){
   const id=m.id||uuid();
   m=Object.assign({id:id,t:Date.now(),rx:{},my:[]},m);
@@ -1595,7 +1600,7 @@ function msgHTML(c,ms,i,dayStart){
   if(m.re){const r=c.msgs.find(x=>x.id===m.re);if(r)inner+='<div class="quote"><b>'+esc(nameOf(r.f))+'</b> '+esc(snip(r.text||r.title||'',50))+'</div>'}
   if(m.del){inner+='<p class="tr" style="opacity:.65;font-style:italic">Message supprimé</p>'}
   else if(m.k==='voice'){
-    inner+='<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
+    inner+=(m.pc&&m.media?pcFront(m):'')+'<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',14)+fmt(m.dur||5)+'</span></div>'+
       '<button class="rd" data-act="mtrx" aria-expanded="'+!!open+'">'+ico('text',16)+'<span>'+(open?'Masquer la transcription':'Lire la transcription')+'</span></button><p class="tr"'+(open?'':' hidden')+'>'+words(m.text)+'</p>';
   }else if(m.stk){inner+=stickerBubble(m)}
   else if(m.media){inner+=mediaHTML(m)+(m.text&&!/^(📷 Photo|🎬 Vidéo)$/.test(m.text)?'<p class="tr">'+esc(m.text)+'</p>':'')}
@@ -5334,6 +5339,91 @@ A.pvok=t=>{
 
 /* ---------- Navigation : on recharge à l'ouverture ---------- */
 function perchEnter(){PB.open=null;renderPerch();pbLoad(true)}
+/* =====================  CARTE POSTALE VOCALE : une photo + 20 secondes de voix  ===================== */
+const PCS={blob:null,url:'',w:0,h:0,rec:null,cap:'',busy:false,au:null,recording:false};
+const pcFront=m=>'<div class="pcfront">'+mediaHTML(m)+((m.pc&&m.pc.c)?'<div class="pccap">'+esc(String(m.pc.c).slice(0,40))+'</div>':'')+'</div>';
+{ const _ph=plusHTML;
+  plusHTML=function(c){
+    const h=_ph(c),k='<button class="mcard" data-act="plgo" data-k="media"';
+    const card='<button class="mcard" data-act="plgo" data-k="postcard"><span class="mi" style="background:#FFB86B">💌</span><b>Carte postale</b><span class="s">Une photo + 20 s de ta voix</span></button>';
+    return h.indexOf(k)>=0?h.replace(k,card+k):h;
+  };
+  const _pg=A.plgo;
+  A.plgo=function(t,ev){if(t.dataset.k==='postcard'){pcOpen();return}return _pg(t,ev)};
+}
+function pcOpen(){
+  if(PCS.url){try{URL.revokeObjectURL(PCS.url)}catch(e){}}
+  pcStopAudio();
+  Object.assign(PCS,{blob:null,url:'',w:0,h:0,rec:null,cap:'',busy:false,recording:false});
+  openSheet(pcHTML());
+}
+function pcStopAudio(){if(PCS.au){try{PCS.au.pause()}catch(e){}PCS.au=null}}
+function pcHTML(){
+  const photo=PCS.blob?'<div class="pcfront pcprev"><img src="'+PCS.url+'" alt="Ta photo"><button class="pill" data-act="pcpick" style="position:absolute;right:10px;top:10px">Changer</button></div>'
+    :'<button class="btn w100 pbig" data-act="pcpick" style="margin:0">📷 Choisir ou prendre une photo</button>';
+  let voice;
+  if(PCS.recording)voice='<div class="pdl" id="pcLive">…</div><div class="prow2"><b id="pcT" style="flex:1">0:00 / 0:20</b><button class="btn" data-act="pcstop">Terminer</button></div>';
+  else if(PCS.rec)voice='<div class="pdl" style="min-height:0">'+esc(PCS.rec.text||'(pas de transcription)')+'</div><div class="prow2"><button class="btn ghost" data-act="pcplay">▶ Écouter</button><button class="btn ghost" data-act="pcrec">🎙️ Refaire</button></div>';
+  else voice='<button class="btn w100 pbig" data-act="pcrec" style="margin:0">🎙️ Enregistrer ta voix (20 s max)</button>';
+  return sheetHead('Carte postale')+photo+
+    '<div class="group"><div class="lbl">Légende (facultatif)</div><input id="pcCap" class="pinp" maxlength="40" placeholder="Où es-tu ? Ex : Biarritz 🌊" value="'+esc(PCS.cap)+'"></div>'+
+    '<div class="group"><div class="lbl">Ta voix</div>'+voice+'</div>'+
+    '<button class="btn w100" data-act="pcsend"'+(PCS.blob&&PCS.rec&&!PCS.busy?'':' disabled')+'>'+(PCS.busy?'Envoi…':'Envoyer la carte')+'</button>';
+}
+function pcRefresh(){const i=$('#pcCap');if(i)PCS.cap=i.value;setSheet(pcHTML())}
+A.pcpick=()=>{
+  let i=$('#pcfile');
+  if(!i){i=document.createElement('input');i.type='file';i.id='pcfile';i.accept='image/*';i.style.display='none';
+    i.addEventListener('change',async()=>{
+      const f=i.files&&i.files[0];i.value='';if(!f)return;
+      if(!/^image\//.test(f.type)){toast('Choisis une photo.');return}
+      try{
+        const r=await shrinkImage(f);
+        if(PCS.url){try{URL.revokeObjectURL(PCS.url)}catch(e){}}
+        PCS.blob=r.blob;PCS.w=r.w;PCS.h=r.h;PCS.url=URL.createObjectURL(r.blob);pcRefresh();
+      }catch(e){toast('Impossible de lire cette photo.')}
+    });document.body.appendChild(i)}
+  i.click();
+};
+A.pcrec=()=>{
+  pcStopAudio();
+  const ci=$('#pcCap');if(ci)PCS.cap=ci.value;
+  PCS.rec=null;PCS.recording=true;setSheet(pcHTML());
+  CAP={rec:true};
+  recStart({max:20,live:t=>{const e=$('#pcLive');if(e)e.textContent=t||'…'},tick:s=>{const e=$('#pcT');if(e)e.textContent=fmt(s)+' / 0:20'},done:r=>{
+    if(!CAP||!CAP.rec)return;CAP=null;PCS.recording=false;
+    if(!r.blob&&!r.text){toast("Je n'ai rien entendu, réessaie.");PCS.rec=null}else PCS.rec=r;
+    pcRefresh();
+  }});
+};
+A.pcstop=()=>{if(R.on)recStop()};
+A.pcplay=()=>{
+  if(!PCS.rec||!PCS.rec.blob)return;
+  if(PCS.au){pcStopAudio();return}
+  const a=new Audio(URL.createObjectURL(PCS.rec.blob));PCS.au=a;a.onended=()=>{PCS.au=null};
+  const p=a.play();if(p&&p.catch)p.catch(()=>{PCS.au=null});
+};
+A.pcsend=async()=>{
+  const c=conv(cur);if(!c||!PCS.blob||!PCS.rec||PCS.busy)return;
+  const ci=$('#pcCap');if(ci)PCS.cap=ci.value;
+  PCS.busy=true;setSheet(pcHTML());
+  const id=uuid(),ip=c.id+'/'+id+'.jpg',r=PCS.rec;
+  const up=await sb.storage.from('media').upload(ip,PCS.blob,{contentType:'image/jpeg'});
+  if(up.error){PCS.busy=false;pcRefresh();toast('Envoi impossible : '+up.error.message);return}
+  let ap=null;
+  if(r.blob){
+    ap=c.id+'/'+id+'.'+extOf(r.mime);
+    const ua=await sb.storage.from('voices').upload(ap,r.blob,{contentType:r.mime||'audio/webm'});
+    if(ua.error)ap=null;
+  }
+  const m={id:id,f:'me',k:'voice',text:r.text||'Carte postale',dur:r.dur,media:{t:'image',path:ip,w:PCS.w,h:PCS.h},pc:{c:(PCS.cap||'').trim().slice(0,40)},localMedia:PCS.url};
+  if(ap){m.audio=ap;m.localAudio=URL.createObjectURL(r.blob)}
+  pcStopAudio();
+  addMsg(c,m);
+  PCS.url='';PCS.blob=null;closeSheet();
+  if(view==='chat'&&cur===c.id)renderMsgs(true);
+  toast('Carte postale envoyée 💌');
+};
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -5382,7 +5472,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792675705';
+const BUILD='1792676174';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
