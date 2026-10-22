@@ -369,6 +369,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .pcfront::after{content:"💌";position:absolute;right:10px;top:10px;font-size:18px;filter:drop-shadow(0 1px 2px #0004)}
 .pcprev{transform:none;margin-bottom:12px}.pcprev::after{content:none}
 .vopost{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 12px;margin-bottom:10px}.voh{display:flex;align-items:center;gap:8px;margin-bottom:8px}.voh small{color:var(--muted)}.tabs .tab{font-size:10.5px}
+.lnk{background:none;border:0;color:var(--blue,#2F5BFF);font:inherit;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}.obban{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FFE9C7;color:#3B1A12;border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:13px;font-weight:600}
 </style>
 
 <div class="app" id="app">
@@ -804,13 +805,14 @@ function addMsg(c,m,pre){
   const go=()=>sb.from('messages').insert(row());
   const run=pre?pre.then(()=>go(),()=>{delete meta.audio;if(navigator.onLine!==false)toast("Ton audio n'a pas pu être envoyé : le vocal part en texte.");return go()}):go();
   Promise.resolve(run).then(r=>{
-    if(!r.error){if(m.pending){delete m.pending;if(view==='chat'&&cur===c.id)renderMsgs()}return}
+    if(!r.error){if(typeof obDel==='function')obDel(id);if(m.pending){delete m.pending;if(view==='chat'&&cur===c.id)renderMsgs()}return}
     if(r.error.code==='23505')return;
     if(isNetErr(r.error)&&!m.media){
       m.pending=true;outqAdd(c.id,row(),m.t);
       if(view==='chat'&&cur===c.id)renderMsgs();
       return;
     }
+    if(m.k==='voice'||m.media){m._row=row();m.pending=false;m.failed=r.error.message;toast('Message non envoyé : '+r.error.message);if(view==='chat'&&cur===c.id)renderMsgs();return}
     c.msgs=c.msgs.filter(x=>x!==m);
     toast("Message non envoyé : "+r.error.message);
     if(view==='chat'&&cur===c.id)renderMsgs();
@@ -1373,7 +1375,7 @@ function recRelease(){
   R.mr=null;R.stream=null;
 }
 function recKill(){
-  recClear();
+  recClear();if(typeof obRecDel==='function')obRecDel();
   try{if(R.rec){R.rec.onend=null;R.rec.onerror=null;R.rec.abort()}}catch(e){}
   R.rec=null;R.on=false;recRelease();R.chunks=[];
 }
@@ -1443,7 +1445,7 @@ function recStop(){
     if(done||pend.sr||pend.mr)return;
     done=true;
     const blob=R.chunks.length?new Blob(R.chunks,{type:R.mime||'audio/webm'}):null,mime=R.mime||'audio/webm',text=R.text.trim();
-    R.on=false;R.rec=null;recRelease();R.chunks=[];
+    R.on=false;R.rec=null;recRelease();R.chunks=[];if(typeof obRecDel==='function')obRecDel();
     if(ui&&ui.done)ui.done({text:text,dur:dur,blob:blob,mime:mime});
   };
   if(pend.sr){R.rec.onend=()=>{pend.sr=false;fin()};R.rec.onerror=null;try{R.rec.stop()}catch(e){pend.sr=false}}
@@ -1620,7 +1622,7 @@ function msgHTML(c,ms,i,dayStart){
     '<div class="bubble k-'+m.k+(m.stk?' stkb':'')+'" data-key="'+key+'">'+inner+'</div>'+remChip(c,m)+
     noteHTML(c,m,'sum')+noteHTML(c,m,'tr')+noteHTML(c,m,'sty')+
     (rx?'<div class="mrx">'+rx+'</div>':'')+
-    (m.pending?'<span class="mt">⏳ en attente de réseau</span>':(last?'<span class="mt">'+hhmm(m.t)+(m.edited?' · modifié':'')+(m.exp?' · 🕒':'')+readTag(c,m)+'</span>':''))+'</div>'+
+    (m.failed?'<span class="mt">⚠️ Non envoyé · <button class="lnk" data-act="mretry" data-id="'+m.id+'">Réessayer</button> · <button class="lnk" data-act="mdrop" data-id="'+m.id+'">Supprimer</button></span>':m.pending?'<span class="mt">⏳ en attente de réseau</span>':(last?'<span class="mt">'+hhmm(m.t)+(m.edited?' · modifié':'')+(m.exp?' · 🕒':'')+readTag(c,m)+'</span>':''))+'</div>'+
     '<button class="mmore" data-act="mmenu" aria-label="Actions du message">'+ico('more',18)+'</button></div>';
 }
 function renderMsgs(stick){
@@ -3214,6 +3216,7 @@ function renderChats(){
     '<button class="story" role="listitem" data-act="'+(mineA?'storyplay':'dailygo')+'" data-id="'+(mineA?mineA.id:'')+'"><span class="ring me'+(mineA?' on':'')+'"><span class="av">'+avatar(avMood('me'),52)+'</span>'+(mineA?'':'<span class="plus">+</span>')+'</span><span class="n">Toi</span></button>'+
     fr.map(f=>{const a=frAns(f.id);const sl=statusLive(U[f.id]);return '<button class="story" role="listitem" data-act="'+(sl?'stplay':(a?'storyplay':'open'))+'" data-id="'+(sl?f.id:(a?a.id:f.cid))+'" data-cid="'+f.cid+'"><span class="ring'+((a||sl)?' on':'')+'"><span class="av">'+avatar(avMood(f.id),52)+'</span>'+(sl?'<span class="plus" style="background:var(--pink,#FF8FA0)">💬</span>':'')+'</span><span class="n">'+esc(nameOf(f.id))+'</span></button>'}).join('')+
     '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
+  html+=obBannerHTML();
   html+=recCardHTML();
   html+=startCardHTML();
   html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans La Volière':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
@@ -5410,18 +5413,13 @@ A.pcsend=async()=>{
   const ci=$('#pcCap');if(ci)PCS.cap=ci.value;
   PCS.busy=true;setSheet(pcHTML());
   const id=uuid(),ip=c.id+'/'+id+'.jpg',r=PCS.rec;
-  const up=await sb.storage.from('media').upload(ip,PCS.blob,{contentType:'image/jpeg'});
-  if(up.error){PCS.busy=false;pcRefresh();toast('Envoi impossible : '+up.error.message);return}
-  let ap=null;
-  if(r.blob){
-    ap=c.id+'/'+id+'.'+extOf(r.mime);
-    const ua=await sb.storage.from('voices').upload(ap,r.blob,{contentType:r.mime||'audio/webm'});
-    if(ua.error)ap=null;
-  }
+  let ap=null;if(r.blob)ap=c.id+'/'+id+'.'+extOf(r.mime);
   const m={id:id,f:'me',k:'voice',text:r.text||'Carte postale',dur:r.dur,media:{t:'image',path:ip,w:PCS.w,h:PCS.h},pc:{c:(PCS.cap||'').trim().slice(0,40)},localMedia:PCS.url};
   if(ap){m.audio=ap;m.localAudio=URL.createObjectURL(r.blob)}
+  const files=[{bucket:'media',path:ip,blob:PCS.blob,mime:'image/jpeg'}];
+  if(ap)files.push({bucket:'voices',path:ap,blob:r.blob,mime:r.mime||'audio/webm'});
   pcStopAudio();
-  addMsg(c,m);
+  obSendMsg(c,m,files);
   PCS.url='';PCS.blob=null;closeSheet();
   if(view==='chat'&&cur===c.id)renderMsgs(true);
   toast('Carte postale envoyée 💌');
@@ -5464,6 +5462,152 @@ renderFeed=function(){
   renderTabs();hydrateMedia();
   if(np)paintKey(np.key);
 };
+/* =====================  ENVOI ROBUSTE : file d'attente visible + sauvegarde de l'enregistrement  ===================== */
+const OB={live:{},waiters:[],resumed:false,recChecked:false,recAt:0};
+function obDB(){return new Promise((res,rej)=>{
+  try{const q=indexedDB.open('pepie-ob',1);q.onupgradeneeded=()=>q.result.createObjectStore('items',{keyPath:'id'});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}
+})}
+async function obPut(it){try{const db=await obDB();await new Promise(r=>{const t=db.transaction('items','readwrite');t.objectStore('items').put(it);t.oncomplete=r;t.onerror=r;t.onabort=r})}catch(e){}}
+async function obGet(id){try{const db=await obDB();return await new Promise(r=>{const q=db.transaction('items').objectStore('items').get(id);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(e){return null}}
+async function obAll(){try{const db=await obDB();return await new Promise(r=>{const q=db.transaction('items').objectStore('items').getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([])})}catch(e){return []}}
+async function obDel(id){try{const db=await obDB();await new Promise(r=>{const t=db.transaction('items','readwrite');t.objectStore('items').delete(id);t.oncomplete=r;t.onerror=r;t.onabort=r})}catch(e){}}
+const obRecDel=()=>obDel('rec-current');
+function obWake(){const w=OB.waiters.splice(0);w.forEach(f=>f())}
+const obWait=ms=>new Promise(r=>{const t=setTimeout(()=>{r()},ms);OB.waiters.push(()=>{clearTimeout(t);r()})});
+window.addEventListener('online',obWake);
+
+/* envoi des fichiers : on réessaie tant que le réseau manque, sans jamais perdre l'audio ou la photo */
+async function obUpload(it,onWait){
+  OB.live[it.id]=1;
+  try{
+    for(let n=0;n<240;n++){
+      let netFail=false;
+      for(const f of it.files){
+        if(f.done)continue;
+        let r;
+        try{r=await sb.storage.from(f.bucket).upload(f.path,f.blob,{contentType:f.mime})}catch(e){r={error:e}}
+        if(r.error){
+          if(/already exists|duplicate|409/i.test((r.error.message||'')+(r.error.statusCode||'')+(r.error.status||''))){f.done=true;continue}
+          if(isNetErr(r.error)){netFail=true;break}
+          await obDel(it.id);throw r.error;
+        }
+        f.done=true;
+      }
+      if(!netFail)return;
+      if(onWait)onWait();
+      await obWait(5000);
+    }
+    throw new Error('abandon');
+  }finally{delete OB.live[it.id]}
+}
+const obMeta=m=>{const o={};META_KEYS.forEach(k=>{if(m[k]!==undefined&&m[k]!=='')o[k]=m[k]});return o};
+const obRow=(c,m)=>({id:m.id,conv_id:c.id,sender:myId,kind:m.k,body:(m.text||'').slice(0,12000),dur:m.dur==null?null:m.dur,meta:obMeta(m)});
+function obSendMsg(c,m,files){
+  const it={id:m.id,conv:c.id,files:files.map(f=>({bucket:f.bucket,path:f.path,blob:f.blob,mime:f.mime,done:false})),row:obRow(c,m),created:Date.now()};
+  let mm=null;
+  obPut(it);
+  const pre=obUpload(it,()=>{if(mm&&!mm.pending){mm.pending=true;if(view==='chat'&&cur===c.id)renderMsgs()}});
+  mm=addMsg(c,m,pre);
+  return mm;
+}
+/* vocal : remplace l'ancien envoi, qui perdait l'audio sans réseau */
+function sendVoiceTo(c,r){
+  const id=uuid(),m={id:id,f:'me',k:'voice',text:r.text||'Vocal (transcription indisponible)',dur:r.dur,re:(cur===c.id?replyTo:null)||undefined};
+  if(r.blob){
+    const path=c.id+'/'+id+'.'+extOf(r.mime);
+    m.audio=path;m.localAudio=URL.createObjectURL(r.blob);
+    obSendMsg(c,m,[{bucket:'voices',path:path,blob:r.blob,mime:r.mime||'audio/webm'}]);
+  }else addMsg(c,m);
+  if(cur===c.id){replyTo=null;renderComposer();renderReplyBar();renderMsgs(true)}
+}
+sendVoice=function(r){const c=conv(cur);if(c)sendVoiceTo(c,r)};
+
+/* reprise au démarrage : ce qui n'est pas parti est renvoyé */
+async function obResume(){
+  const all=await obAll();
+  for(const it of all){
+    if(it.id==='rec-current'||OB.live[it.id]||!it.row||!it.files)continue;
+    if(Date.now()-it.created>7*864e5){obDel(it.id);continue}
+    try{
+      await obUpload(it,null);
+      const r=await sb.from('messages').insert(it.row);
+      if(!r.error||r.error.code==='23505'){await obDel(it.id);toast('Un message en attente a été envoyé ✔')}
+    }catch(e){}
+  }
+}
+
+/* messages en échec : réessayer / supprimer */
+const obFindMsg=id=>{for(const c of convs){const m=c.msgs.find(x=>x.id===id);if(m)return {c:c,m:m}}return null};
+A.mretry=t=>{
+  const f=obFindMsg(t.dataset.id);if(!f||!f.m._row)return;
+  const m=f.m;m.failed=null;m.pending=true;if(view==='chat')renderMsgs();
+  sb.from('messages').insert(m._row).then(r=>{
+    if(!r.error||r.error.code==='23505'){delete m.pending;obDel(m.id);if(view==='chat')renderMsgs();return}
+    m.pending=false;m.failed=r.error.message;if(view==='chat')renderMsgs();
+  });
+};
+A.mdrop=t=>{
+  const f=obFindMsg(t.dataset.id);if(!f)return;
+  f.c.msgs=f.c.msgs.filter(x=>x!==f.m);obDel(f.m.id);
+  OUTQ=OUTQ.filter(o=>!(o.row&&o.row.id===f.m.id));outqSave();
+  if(view==='chat')renderMsgs();else if(view==='chats')renderChats();
+};
+const obPendingCount=()=>convs.reduce((n,c)=>n+c.msgs.filter(m=>m.f==='me'&&(m.pending||m.failed)).length,0);
+const obBannerHTML=()=>{const n=obPendingCount();return n?'<div class="obban">⏳ '+n+' message'+(n>1?'s':'')+' en attente d\'envoi<button class="pill" data-act="obretry">Réessayer</button></div>':''};
+A.obretry=()=>{
+  obWake();outqFlush();
+  convs.forEach(c=>c.msgs.forEach(m=>{if(m.failed&&m._row)A.mretry({dataset:{id:m.id}})}));
+  toast('Nouvelle tentative…');
+  setTimeout(()=>{if(view==='chats')renderChats()},1500);
+};
+
+/* ---------- Enregistrement en cours : sauvegardé toutes les 5 s ---------- */
+setInterval(()=>{
+  if(!R.on||!chatRec||!cur||!R.chunks.length)return;
+  OB.recAt=Date.now();
+  obPut({id:'rec-current',conv:cur,mime:R.mime||'audio/webm',blob:new Blob(R.chunks,{type:R.mime||'audio/webm'}),text:R.text||'',dur:Math.max(1,Math.round((Date.now()-R.t0)/1000)),at:Date.now()});
+},5000);
+let RCS=null,RCAudio=null;
+async function obRecCheck(){
+  const it=await obGet('rec-current');
+  if(!it)return;
+  if(Date.now()-it.at>48*3600*1000||!conv(it.conv)||!it.blob){obRecDel();return}
+  RCS=it;
+  openSheet(sheetHead('Enregistrement interrompu')+'<p class="small" style="margin:0">Un vocal de '+fmt(it.dur)+' dans « '+esc(convTitle(conv(it.conv)))+' » n\'a pas été envoyé (l\'appli s\'est fermée ou le téléphone s\'est mis en veille). Il a été gardé.</p>'+
+    '<div class="prow2"><button class="btn ghost" data-act="rcplay">▶ Écouter</button><button class="btn" data-act="rcsend">Envoyer</button></div><button class="btn ghost w100" data-act="rcdel">Supprimer</button>');
+}
+A.rcplay=()=>{
+  if(!RCS)return;
+  if(RCAudio){try{RCAudio.pause()}catch(e){}RCAudio=null;return}
+  RCAudio=new Audio(URL.createObjectURL(RCS.blob));RCAudio.onended=()=>{RCAudio=null};
+  const p=RCAudio.play();if(p&&p.catch)p.catch(()=>{RCAudio=null});
+};
+A.rcsend=()=>{
+  if(!RCS)return;const c=conv(RCS.conv);if(!c)return;
+  if(RCAudio){try{RCAudio.pause()}catch(e){}RCAudio=null}
+  const it=RCS;RCS=null;closeSheet();
+  sendVoiceTo(c,{text:it.text,dur:it.dur,blob:it.blob,mime:it.mime});
+  obRecDel();toast('Vocal envoyé ✔');
+};
+A.rcdel=()=>{RCS=null;if(RCAudio){try{RCAudio.pause()}catch(e){}RCAudio=null}obRecDel();closeSheet()};
+
+/* l'écran se verrouille ou l'appli passe en arrière-plan : le micro peut s'arrêter. On garde ce qui a été enregistré. */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!R.on||!chatRec||!R.mr)return;
+  if(R.mr.state==='recording')return;
+  const blob=R.chunks.length?new Blob(R.chunks,{type:R.mime||'audio/webm'}):null;
+  if(!blob)return;
+  const it={id:'rec-current',conv:cur,mime:R.mime||'audio/webm',blob:blob,text:R.text||'',dur:Math.max(1,Math.round((Date.now()-R.t0)/1000)),at:Date.now()};
+  recKill();chatRec=false;renderComposer();
+  obRecDel().then(()=>obPut(it)).then(()=>obRecCheck());
+});
+
+/* démarrage : reprise des envois, puis éventuel enregistrement interrompu */
+setInterval(()=>{
+  if(!myId)return;
+  if(!OB.resumed){OB.resumed=true;obResume()}
+  if(!OB.recChecked&&convs.length){OB.recChecked=true;obRecCheck()}
+},3000);
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -5512,7 +5656,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792678048';
+const BUILD='1792679209';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
