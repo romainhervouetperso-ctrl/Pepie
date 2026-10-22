@@ -5222,7 +5222,7 @@ function pbAdd(boxId,texts,extra){
   const rows=texts.map(t=>Object.assign({id:uuid(),box:boxId,text:t.slice(0,4000),done:false,created_at:new Date().toISOString()},extra||{}));
   rows.forEach(r=>PB.items.push(Object.assign({owner:myId,notified:false,lead:0,due:null,fire_at:null},r)));
   renderPerch();
-  sb.from('perch_items').insert(rows.map(r=>Object.assign({},r,{created_at:undefined}))).then(r=>{if(pbErr(r))pbLoad(true)});
+  sb.from('perch_items').insert(rows.map(r=>{const o=Object.assign({},r);delete o.created_at;return o})).then(r=>{if(pbErr(r)){PB.items=PB.items.filter(i=>!rows.some(x=>x.id===i.id));renderPerch()}});
 }
 A.pbox=t=>{PB.open=t.dataset.id;renderPerch();$('#scroll').scrollTop=0};
 A.pback=()=>{PB.open=null;renderPerch();$('#scroll').scrollTop=0};
@@ -5834,7 +5834,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792686139';
+const BUILD='1792686643';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
