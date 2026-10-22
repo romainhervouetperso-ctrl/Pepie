@@ -368,6 +368,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .pccap{position:absolute;left:8px;right:8px;bottom:4px;text-align:center;font:italic 700 13px/1.2 system-ui,sans-serif;color:#3B1A12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcfront::after{content:"💌";position:absolute;right:10px;top:10px;font-size:18px;filter:drop-shadow(0 1px 2px #0004)}
 .pcprev{transform:none;margin-bottom:12px}.pcprev::after{content:none}
+.vopost{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 12px;margin-bottom:10px}.voh{display:flex;align-items:center;gap:8px;margin-bottom:8px}.voh small{color:var(--muted)}.tabs .tab{font-size:10.5px}
 </style>
 
 <div class="app" id="app">
@@ -1457,10 +1458,10 @@ const unreadTotal=()=>convs.reduce((n,c)=>n+(c.unread||0),0);
 function renderTabs(){
   const u=unreadTotal();
   $('#tabs').innerHTML=
-    '<button class="tab" data-act="go" data-to="chats"><span class="pill">'+ico('comment',22)+'</span>Pia-pia'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
-    '<button class="tab" data-act="go" data-to="feed"><span class="pill">'+ico('sparkle',22)+'</span>Aujourd\'hui</button>'+
+    '<button class="tab" data-act="go" data-to="chats"><span class="pill">🐥</span>Pia-pia'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
+    '<button class="tab" data-act="go" data-to="feed"><span class="pill">🦜</span>La Volière</button>'+
     '<button class="tab" data-act="go" data-to="perch"><span class="pill">🪺</span>Perchoir</button>'+
-    '<button class="tab" data-act="go" data-to="me"><span class="pill">'+ico('user',22)+'</span>Moi</button>';
+    '<button class="tab" data-act="go" data-to="me"><span class="pill">🪶</span>Mon Plumage</button>';
   document.querySelectorAll('#tabs [data-to]').forEach(b=>b.setAttribute('aria-current',b.dataset.to===view?'page':'false'));
 }
 function setView(v){
@@ -3215,8 +3216,9 @@ function renderChats(){
     '<button class="story" role="listitem" data-act="newchat"><span class="ring"><span class="plus" style="position:static;width:36px;height:36px;font-size:22px">+</span></span><span class="n">Inviter</span></button></div>';
   html+=recCardHTML();
   html+=startCardHTML();
-  html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans Aujourd\'hui':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
-  const moreH='<details class="more"><summary>Plus d\'options</summary><div class="pills"><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div></details>';
+  html+='<button class="dtile" data-act="'+(done?'go':'dailygo')+'" data-to="feed"><span class="e">☀️</span><span><b>'+(done?(nAns?nAns+' ami'+(nAns>1?'s ont':' a')+' répondu au vocal du jour':'Ta réponse du jour est enregistrée'):esc(dqToday()))+'</b><span class="s">'+(done?'Touche pour les écouter dans La Volière':'Vocal du jour · réponds en 20 secondes pour voir celles des amis')+'</span></span></button>';
+  html+=defisHTML();
+  const moreH='<details class="more"><summary>Plus d\'options</summary><div class="pills"><button class="pill" data-act="invite">'+ico('link',16)+'Inviter</button><button class="pill" data-act="lboard">🏆 Classement</button><button class="pill" data-act="moodpick">'+(moodId('me')?stkOf(moodId('me'))[1]:'😀 Mon humeur')+'</button><button class="pill" data-act="statusgo">💬 '+(statusLive({st:me.status})?'Mon statut':'Statut vocal')+'</button><button class="pill" data-act="reader">🔊 Lecteur</button></div><div class="sect" style="margin-top:10px">Jeux</div>'+gamesHTML().replace('<div class="sect">QG des jeux</div>','')+'</details>';
   const fabH='<button class="fabw" data-act="newchat" aria-label="Nouvelle discussion">✏️</button>';
   if(pinned.length)html+='<div class="sect">Épinglées</div><div class="list">'+pinned.map(row).join('')+'</div>';
   html+=(pinned.length?'<div class="sect">Récentes</div>':'')+'<div class="list">'+(rest.length||pinned.length?rest.map(row).join(''):'<p class="empty">Aucune discussion pour l\'instant. Invite un ami avec le bouton « Inviter », puis lance le premier vocal !</p>')+'</div>';
@@ -5149,7 +5151,7 @@ function pbBoxHTML(b){
     const rowR=r=>'<div class="pit'+(r.notified?' pdone':'')+'"><button class="ptxt" data-act="prem" data-id="'+r.id+'"><b>'+esc(r.text)+'</b><small>⏰ '+esc(pbWhen(r.due))+(r.lead?' · alerte '+esc((PB_LEAD.find(l=>l[0]===r.lead)||[0,r.lead+' min avant'])[1]):'')+'</small></button><button class="px" data-act="pidel" data-id="'+r.id+'" aria-label="Supprimer">✕</button></div>';
     h+='<div class="plist">'+(up.length?up.map(rowR).join(''):'<p class="empty">Aucun rappel à venir.</p>')+'</div>';
     if(past.length)h+='<div class="sect">Passés</div><div class="plist">'+past.slice(0,10).map(rowR).join('')+'</div>';
-    h+=(S.push?'':'<p class="small" style="margin:6px 0">🔔 Active les notifications dans « Moi » pour recevoir tes rappels.</p>')+
+    h+=(S.push?'':'<p class="small" style="margin:6px 0">🔔 Active les notifications dans « Mon Plumage » pour recevoir tes rappels.</p>')+
        '<button class="btn w100" data-act="prem" data-id="">＋ Nouveau rappel</button><button class="btn w100 pbig" data-act="pdict" data-mode="rem" data-id="'+b.id+'">'+ico('mic',20)+'Dicter un rappel</button>';
   }
   return h;
@@ -5265,7 +5267,7 @@ function pbRemSheet(it,pre){
     '<div class="group"><div class="lbl">Quoi ?</div><textarea id="rmT" class="pta" rows="2" maxlength="500" placeholder="Ex : Appeler le plombier">'+esc(text)+'</textarea></div>'+
     '<div class="prow2"><div class="group" style="flex:1"><div class="lbl">Jour</div><input id="rmD" class="pinp" type="date" value="'+pbYMD(dt)+'"></div><div class="group" style="flex:1"><div class="lbl">Heure</div><input id="rmH" class="pinp" type="time" value="'+pbHM(dt)+'"></div></div>'+
     '<div class="group"><div class="lbl">Me prévenir</div><select id="rmL" class="pinp">'+PB_LEAD.map(l=>'<option value="'+l[0]+'"'+(l[0]===lead?' selected':'')+'>'+l[1]+'</option>').join('')+'</select></div>'+
-    (S.push?'':'<p class="small" style="margin:0">🔔 Les notifications sont désactivées : active-les dans « Moi » pour être prévenu.</p>')+
+    (S.push?'':'<p class="small" style="margin:0">🔔 Les notifications sont désactivées : active-les dans « Mon Plumage » pour être prévenu.</p>')+
     '<div class="prow2"><button class="btn" data-act="rmsave" data-id="'+(it?it.id:'')+'">Enregistrer</button>'+(it?'<button class="btn ghost" data-act="pidelc" data-id="'+it.id+'">Supprimer</button>':'')+'</div>');
 }
 A.prem=t=>{const it=t.dataset.id?PB.items.find(i=>i.id===t.dataset.id):null;pbRemSheet(it)};
@@ -5424,6 +5426,44 @@ A.pcsend=async()=>{
   if(view==='chat'&&cur===c.id)renderMsgs(true);
   toast('Carte postale envoyée 💌');
 };
+/* =====================  LA VOLIÈRE : le fil des amis (remplace « Aujourd'hui »)  ===================== */
+function voFeedItems(){
+  const out=[],lim=Date.now()-7*864e5;
+  convs.forEach(c=>c.msgs.forEach(m=>{
+    if(m.f==='me'||m.del||!m.pc||!m.media||m.t<lim||hidden(m))return;
+    out.push({t:m.t,k:'pc',c:c,m:m});
+  }));
+  friendStories().forEach(f=>{
+    const u=U[f.id],s=statusLive(u);
+    if(s)out.push({t:Date.parse(s.at)||Date.now(),k:'st',id:f.id,cid:f.cid,u:u,s:s});
+  });
+  out.sort((a,b)=>b.t-a.t);
+  return out;
+}
+function voPlayer(m,key){
+  return '<div class="player"><button class="play" data-act="play" aria-label="Écouter"><span class="pi">'+ico('play',20)+'</span></button><div class="wave" aria-hidden="true">'+bars(m.id+m.text,24)+'</div><button type="button" class="spd" data-act="spd" aria-label="Vitesse de lecture">×1</button><span class="dur">'+ico('mic',13)+fmt(m.dur||5)+'</span></div>';
+}
+function voItemHTML(x){
+  if(x.k==='pc'){
+    const m=x.m,key='m:'+x.c.id+':'+m.id;
+    return '<div class="vopost" data-key="'+key+'"><div class="voh"><span class="av">'+avatar(avOf(m.f),32)+'</span><div><b>'+esc(nameOf(m.f))+'</b><small> · carte postale · '+esc(ago(m.t))+'</small></div></div>'+
+      pcFront(m)+voPlayer(m,key)+'<p class="tr small" style="margin:6px 0 0">'+esc(snip(m.text||'',160))+'</p></div>';
+  }
+  return '<div class="vopost"><div class="voh"><span class="av">'+avatar(x.u.a,32)+'</span><div><b>'+esc(x.u.name)+'</b><small> · statut vocal · '+esc(ago(x.t))+'</small></div></div>'+
+    '<button class="ctact" data-act="stplay" data-id="'+x.id+'" data-cid="'+x.cid+'"><span class="cinfo"><b style="font-size:14px">« '+esc(snip(x.s.text||'Statut vocal',90))+' »</b></span><span class="pi">'+ico('play',18)+'</span></button></div>';
+}
+renderFeed=function(){
+  const items=voFeedItems(),done=answeredToday();
+  $('#v-feed').innerHTML=
+    '<div class="vhead"><h1 class="h1">🦜 La Volière</h1></div>'+
+    dailyCardHTML()+
+    '<div class="chips" style="margin:2px 0 4px"><button class="chip" data-act="radio">📻 Radio des amis</button></div>'+
+    '<div class="sect">Le fil de tes amis</div>'+
+    (items.length?items.map(voItemHTML).join(''):'<p class="empty">Rien pour l\'instant. Les cartes postales et les statuts vocaux de tes amis arrivent ici.</p>')+
+    '<p class="small" style="margin:6px 0 0">Les défis et les jeux sont dans Pia-pia. Tes anciennes publications sont dans Mon Plumage.</p>';
+  renderTabs();hydrateMedia();
+  if(np)paintKey(np.key);
+};
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -5472,7 +5512,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792676889';
+const BUILD='1792678048';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
