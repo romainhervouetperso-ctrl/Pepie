@@ -396,6 +396,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .emptyb{display:flex;justify-content:center;padding:14px 0 0}
 #mfly{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:50;pointer-events:none;transition:opacity .4s}#mfly.out{opacity:0}
 @media (prefers-reduced-motion:reduce){#splash *,.mas,.mas *,#mfly *{animation:none!important}}
+.mrow .bubble,.aicard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 </style>
 
 <div id="splash" role="status" aria-label="Chargement de Pépie"><div class="spl-in"><svg class="bird" viewBox="0 0 100 100" style="width:110px;height:110px"><g class="body"><ellipse cx="50" cy="62" rx="30" ry="26" fill="#FFF3EC"/><path class="wing" d="M58 54c14 0 22 10 18 22-10 2-22-6-18-22z" fill="#FFD2BF"/></g><g class="head"><circle cx="46" cy="40" r="22" fill="#FFF3EC"/><path d="M40 20c2-8 8-10 12-8-2 3-2 6 0 10z" fill="#FFD2BF"/><path d="M26 40l-14 5 14 5z" fill="#2F5BFF"/><circle cx="38" cy="37" r="3.6" fill="#3B1A12"/><circle cx="36" cy="46" r="3.2" fill="#FF7B7B" opacity=".5"/></g><path d="M44 86v8M56 86v8" stroke="#2F5BFF" stroke-width="3" stroke-linecap="round"/></svg><div class="spl-t">Pépie</div><div class="spl-s">Ici, on s'entend.</div><div class="spl-d"><span></span><span></span><span></span></div></div></div>
@@ -738,6 +739,7 @@ const TOPICS=['Santé','Famille','Argent','Couple','Travail'];
 /* ---------- Profils des amis (chargés depuis le serveur) ---------- */
 const U={};
 const EMOJIS=['❤️','😂','🔥','👏','😮','🥹','🎉','👀','🙌','😍','🤯','💡','🥳','😴','🤝','🎧'];
+const RXQ=['👍','👎','❤️','😂','😢'];
 const QUICK=['😂','🔥','👏','❤️','😮','🎉','🙌','😍'];
 const DEMO=[
   "Salut tout le monde ! Petit message du dimanche : on a fait quinze kilomètres à vélo ce matin, il faisait grand soleil et j'ai croisé trois chiens très sympathiques. Belle journée à tous !",
@@ -1732,7 +1734,7 @@ const LANGS=[['English','en-US'],['Español','es-ES'],['Deutsch','de-DE'],['Ital
 const STYLES=['Pirate','Commentateur sportif','Documentaire animalier','Robot','Présentateur météo','Grand-mère inquiète'];
 function mmenuHTML(c,m,sub){
   const head='<div class="sh-head"><b>Message</b><button class="x" data-act="close" aria-label="Fermer">'+ico('close',18)+'</button></div>';
-  const quick='<div class="erow">'+QUICK.map(e=>'<button class="eb" data-act="mpick" data-e="'+e+'" aria-label="Réagir avec '+e+'">'+e+'</button>').join('')+'</div>';
+  const quick='<div class="erow">'+RXQ.map(e=>'<button class="eb" data-act="mpick" data-e="'+e+'" aria-label="Réagir avec '+e+'">'+e+'</button>').join('')+'</div>';
   const row=(act,ic,l,x)=>'<button class="ctact" data-act="'+act+'"'+(x||'')+'><span>'+ico(ic,20)+'</span><span class="cinfo"><b style="font-size:15px">'+l+'</b></span></button>';
   if(m.k==='ai')return head+quick;
   if(m.del)return head+'<p class="small" style="margin:0">Ce message a été supprimé.</p>';
@@ -5765,6 +5767,25 @@ function hideSplash(){
   setTimeout(()=>{s.classList.add('out');setTimeout(()=>s.remove(),450)},left);
 }
 setTimeout(hideSplash,12000);
+
+/* ---------- Appui long sur un message : ouvre les réactions ---------- */
+(function(){
+  let tm=null,sx=0,sy=0,fired=false,tgt=null;
+  const clear=()=>{if(tm){clearTimeout(tm);tm=null}};
+  document.addEventListener('pointerdown',e=>{
+    if(view!=='chat'||e.button>0)return;
+    const b=e.target.closest&&e.target.closest('.mrow .bubble,.aicard');
+    if(!b||e.target.closest('button,a,input,textarea,.wave'))return;
+    tgt=b;sx=e.clientX;sy=e.clientY;fired=false;clear();
+    tm=setTimeout(()=>{tm=null;fired=true;try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
+      const row=b.closest('[data-mid]');if(!row)return;
+      A.mmenu(row)},450);
+  },true);
+  document.addEventListener('pointermove',e=>{if(tm&&Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>10)clear()},true);
+  ['pointerup','pointercancel','scroll'].forEach(k=>document.addEventListener(k,()=>{clear();if(fired)setTimeout(()=>{fired=false},400)},true));
+  document.addEventListener('click',e=>{if(fired){fired=false;e.preventDefault();e.stopPropagation()}},true);
+  document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.mrow .bubble,.aicard'))e.preventDefault()},true);
+})();
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -5813,7 +5834,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792684477';
+const BUILD='1792686139';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
