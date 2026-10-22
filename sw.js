@@ -1,4 +1,4 @@
-/* Pépie : notifications push + pastille sur l'icône (v2) */
+/* Pépie : notifications push + pastille sur l'icône (v3) */
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 async function badgeSync(){
@@ -13,6 +13,10 @@ self.addEventListener('push',e=>{
   try{d=e.data.json()}catch(_){}
   e.waitUntil((async()=>{
     const cl=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    if(d.kind==='perch'){
+      await self.registration.showNotification(d.title||'Rappel',{body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.tag||'perch',data:{conv:'',n:1,perch:1},requireInteraction:true});
+      await badgeSync();return;
+    }
     if(cl.some(c=>c.visibilityState==='visible'))return;
     const tag=d.conv||'pepie';let n=1;
     try{const ex=await self.registration.getNotifications({tag:tag});if(ex.length&&ex[0].data&&ex[0].data.n)n=ex[0].data.n+1}catch(_){}

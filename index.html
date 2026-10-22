@@ -141,7 +141,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .rc.s{min-height:26px;padding:1px 8px;font-size:12.5px}
 
 /* Barre d'onglets */
-.tabs{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-block:8px 10px;background:var(--card);border-top:2px solid var(--line)}
+.tabs{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-block:8px 10px;background:var(--card);border-top:2px solid var(--line)}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;padding:4px 0;font:700 11.5px var(--font-body);color:var(--muted);cursor:pointer;position:relative}
 .tab .pill{display:grid;place-items:center;width:52px;height:30px;border-radius:999px}
 .tab[aria-current="page"]{color:var(--ink)}
@@ -339,6 +339,30 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
 .more{margin:14px 0 80px}.more summary{cursor:pointer;color:var(--mut,#8A5F52);font-size:13px;padding:8px 2px}.more .pills{margin-top:6px}.fabw{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(78px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:0;background:#2F5BFF;color:#fff;font-size:22px;box-shadow:0 4px 12px #0003;z-index:5}
 .composer{align-items:flex-end}.composer textarea{flex:1;min-width:0;border:2px solid var(--line);border-radius:20px;background:var(--bg);color:var(--ink);padding:10px 14px;font-size:16px;line-height:1.3;resize:none;max-height:130px;font-family:inherit;box-sizing:border-box}.tr{white-space:pre-wrap;overflow-wrap:anywhere}
 .seektip{position:fixed;transform:translateX(-50%);background:#3B1A12;color:#fff;font-weight:700;font-size:13px;padding:5px 10px;border-radius:10px;z-index:99;pointer-events:none;font-variant-numeric:tabular-nums}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.pbox{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px;color:var(--ink);cursor:pointer;font:inherit}
+.pbox .pe{font-size:26px}.pbox b{font-size:15px}.pbox small{color:var(--muted);font-size:12px}
+.pbox.padd{align-items:center;justify-content:center;border-style:dashed;color:var(--muted);font-weight:700;background:transparent}
+.pbig{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.pbh{display:flex;align-items:center;gap:8px}.pbh .h1{flex:1;margin:0;font-size:22px}
+.padd2{display:flex;gap:8px;margin-bottom:10px}
+.pinp{flex:1;min-width:0;border:2px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);padding:10px 12px;font-size:16px;font-family:inherit;box-sizing:border-box;width:100%}
+.pta{width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);padding:10px 12px;font-size:16px;font-family:inherit;resize:vertical}
+.plist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.pit{display:flex;align-items:center;gap:8px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
+.pit .ptxt{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--ink);font:inherit;padding:2px 0;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.pit .ptxt b{font-weight:600;overflow-wrap:anywhere}.pit .ptxt small{color:var(--muted);font-size:12px}
+.pdone .ptxt b{text-decoration:line-through;color:var(--muted)}
+.pck{width:26px;height:26px;border-radius:8px;border:2px solid #FFA98A;background:transparent;color:#3B1A12;font-weight:900;flex:none;cursor:pointer}
+.pck.on{background:#FFA98A}
+.px{background:none;border:0;color:var(--muted);font-size:16px;padding:4px 6px;cursor:pointer}
+.pnote{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px}
+.pnote p{margin:0 0 8px;overflow-wrap:anywhere;line-height:1.4}
+.pnr{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.pnr .pill{padding:4px 10px;font-size:12px}
+.prow2{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}.prow2 .btn{flex:1}
+.pdl{min-height:90px;border:2px dashed var(--line);border-radius:14px;padding:12px;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
 </style>
 
 <div class="app" id="app">
@@ -357,6 +381,7 @@ button{color:inherit;-webkit-tap-highlight-color:transparent}
     <div class="view" id="v-create" hidden></div>
     <div class="view" id="v-new" hidden></div>
     <div class="view" id="v-me" hidden></div>
+    <div class="view" id="v-perch" hidden></div>
   </main>
   <nav class="tabs gut" id="tabs" aria-label="Navigation" hidden></nav>
   <div class="toast" id="toast" role="status" hidden></div>
@@ -1422,20 +1447,21 @@ function recStop(){
 }
 /* ---------- Navigation ---------- */
 let view='chats',cur=null,replyTo=null,typing=null,chatRec=false,chatDraft='',QR=false,MM=null,NS=new Set(),gname='';
-const VIEWS=['onboard','chats','chat','feed','create','new','me'];
+const VIEWS=['onboard','chats','chat','feed','create','new','me','perch'];
 const unreadTotal=()=>convs.reduce((n,c)=>n+(c.unread||0),0);
 function renderTabs(){
   const u=unreadTotal();
   $('#tabs').innerHTML=
     '<button class="tab" data-act="go" data-to="chats"><span class="pill">'+ico('comment',22)+'</span>Discussions'+(u?'<span class="nb">'+u+'</span>':'')+'</button>'+
     '<button class="tab" data-act="go" data-to="feed"><span class="pill">'+ico('sparkle',22)+'</span>Aujourd\'hui</button>'+
+    '<button class="tab" data-act="go" data-to="perch"><span class="pill">🪺</span>Perchoir</button>'+
     '<button class="tab" data-act="go" data-to="me"><span class="pill">'+ico('user',22)+'</span>Moi</button>';
   document.querySelectorAll('#tabs [data-to]').forEach(b=>b.setAttribute('aria-current',b.dataset.to===view?'page':'false'));
 }
 function setView(v){
   view=v;
   VIEWS.forEach(k=>{$('#v-'+k).hidden=(k!==v)});
-  const tabbed=(v==='chats'||v==='feed'||v==='me');
+  const tabbed=(v==='chats'||v==='feed'||v==='me'||v==='perch');
   $('#top').hidden=!tabbed;$('#tabs').hidden=!tabbed;
   $('#scroll').classList.toggle('flush',v==='chat');
   if(tabbed)renderTabs();
@@ -1452,6 +1478,7 @@ function go(to){
   if(to==='chats')renderChats();
   if(to==='feed')renderFeed();
   if(to==='me')renderMe();
+  if(to==='perch')perchEnter();
 }
 
 /* ---------- Connexion / inscription ---------- */
@@ -4920,6 +4947,393 @@ function appBadge(){
 }
 setInterval(appBadge,2000);
 document.addEventListener('visibilitychange',()=>{badgeLast=-1;appBadge()});
+/* =====================  LE PERCHOIR : pense-bête perso (courses, à faire, idées, rappels)  ===================== */
+const PB={boxes:[],items:[],loaded:false,loading:false,open:null};
+const PB_EMO=['🛒','✅','💡','⏰','📥','🎁','🏠','💼','🎬','📚','✈️','🍽️'];
+const PB_KIND={list:'Liste à cocher',notes:'Notes',reminders:'Rappels'};
+const PB_LEAD=[[0,"À l'heure"],[5,'5 min avant'],[10,'10 min avant'],[15,'15 min avant'],[30,'30 min avant'],[60,'1 h avant'],[120,'2 h avant'],[1440,'1 jour avant'],[2880,'2 jours avant']];
+const pbBox=id=>PB.boxes.find(b=>b.id===id);
+const pbItems=id=>PB.items.filter(i=>i.box===id);
+const pbErr=r=>{if(r&&r.error){toast('Perchoir : '+r.error.message);return true}return false};
+const pbP2=n=>String(n).padStart(2,'0');
+const pbYMD=d=>d.getFullYear()+'-'+pbP2(d.getMonth()+1)+'-'+pbP2(d.getDate());
+const pbHM=d=>pbP2(d.getHours())+':'+pbP2(d.getMinutes());
+const pbCap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+const pbFold=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'');
+function pbWhen(iso){
+  if(!iso)return '';
+  const d=new Date(iso),n=new Date(),a=new Date(n.getFullYear(),n.getMonth(),n.getDate()),b=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const diff=Math.round((b-a)/86400000);
+  const day=diff===0?"Aujourd'hui":diff===1?'Demain':diff===-1?'Hier':d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  return day+' · '+pbHM(d).replace(':','h');
+}
+
+/* ---------- Données ---------- */
+async function pbLoad(force){
+  if(!myId||PB.loading)return;
+  if(PB.loaded&&!force)return;
+  PB.loading=true;
+  try{
+    const rb=await sb.from('perch_boxes').select('*').order('pos',{ascending:true}).order('created_at',{ascending:true});
+    if(pbErr(rb))return;
+    let boxes=rb.data||[];
+    if(!boxes.length){
+      const base=[['En vrac','📥','notes'],['Courses','🛒','list'],['À faire','✅','list'],['Idées','💡','notes'],['Rappels','⏰','reminders']];
+      const rows=base.map((b,i)=>({id:uuid(),name:b[0],emoji:b[1],kind:b[2],pos:i}));
+      const ri=await sb.from('perch_boxes').insert(rows);
+      if(pbErr(ri))return;
+      boxes=rows;
+    }
+    const ri2=await sb.from('perch_items').select('*').order('created_at',{ascending:true}).limit(2000);
+    if(pbErr(ri2))return;
+    PB.boxes=boxes;PB.items=ri2.data||[];PB.loaded=true;
+  }finally{PB.loading=false}
+  if(view==='perch')renderPerch();
+}
+
+/* ---------- Analyse de la voix ---------- */
+const PB_FILL=/\b(euh+|heu+|hum+|mmh+|ben|bah|hein)\b/gi;
+function pbClean(t){
+  t=String(t||'').replace(PB_FILL,' ').replace(/\s+/g,' ').trim();
+  t=t.replace(/\b(\w{2,})\s+\1\b/gi,'$1');            /* « le le » → « le » */
+  t=t.replace(/\s+([,.;:!?])/g,'$1');
+  t=t.replace(/\b(?:virgule)\b/gi,',').replace(/\b(?:point d'interrogation)\b/gi,'?').replace(/\bà la ligne\b/gi,'.');
+  /* coupures de phrases aux articulations du discours quand il n'y a pas de ponctuation */
+  if(!/[.!?]/.test(t)&&t.split(' ').length>14)t=t.replace(/\s+(donc|ensuite|puis|et puis|après|sinon|alors|par contre|en plus)\s+/gi,(m,w)=>'. '+pbCap(w)+' ');
+  t=t.replace(/(^|[.!?]\s+)([a-zà-ÿ])/g,(m,a,b)=>a+b.toUpperCase());
+  if(t&&!/[.!?…]$/.test(t))t+='.';
+  return t;
+}
+const PB_LEADRE=/^(?:alors |bon |ok |donc )?(?:il (?:me )?faut(?: que je| que j')?|faut(?: que je)?|je dois|je vais|je veux|j'ai besoin d[eu']|penser à|pense à|n'oublie pas d[e']?|ne pas oublier d[e']?|rajoute|ajoute|mets|met|note|noter)\s*/i;
+const PB_VERBS=new Set(['appeler','acheter','prendre','envoyer','réserver','payer','réparer','ranger','nettoyer','faire','prévenir','commander','vérifier','rappeler','répondre','écrire','préparer','sortir','lancer','passer','aller','récupérer','déposer','demander','regarder','trier','jeter','changer','organiser','poster','imprimer','signer','relancer','confirmer','planifier','finir','terminer','laver','tondre','arroser','réviser','inscrire','annuler']);
+const PB_NOSPLIT=new Set(['à','a','de','d\'','pour','pas','peux','veux','dois','vais','faut','que','qu\'','et','ou','sans','puis','le','la','les','un','une','mon','ma','mes']);
+function pbSplit(text,mode){
+  let t=String(text||'').replace(PB_FILL,' ').replace(/\s+/g,' ').trim();
+  if(!t)return [];
+  t=t.replace(/\bvirgule\b/gi,',').replace(/\bà la ligne\b/gi,',');
+  t=t.replace(PB_LEADRE,'');
+  if(mode!=='todo')t=t.replace(/^(?:acheter|racheter|prendre|commander)\s+/i,'');
+  let parts;
+  if(mode==='todo'){
+    parts=t.split(/\s*[,;\n.]\s*|\s+(?:et puis|puis|ensuite|après ça|après|et aussi|aussi|sans oublier|il faut aussi|il faut|je dois|n'oublie pas d[e']?|penser à|pense à|ne pas oublier d[e']?)\s+/i);
+    const out=[];
+    parts.forEach(p=>{
+      const w=p.trim().split(' ');let cur=[];
+      w.forEach((x,i)=>{
+        const lw=x.toLowerCase();
+        const pv=i>0?w[i-1].toLowerCase():'';
+        if(i>0&&PB_VERBS.has(lw)&&(pv==='et'||pv==='puis')&&cur.length>=3){cur.pop();out.push(cur.join(' '));cur=[x]}
+        else if(i>0&&PB_VERBS.has(lw)&&!PB_NOSPLIT.has(pv)&&cur.length>=2){out.push(cur.join(' '));cur=[x]}
+        else cur.push(x);
+      });
+      if(cur.length)out.push(cur.join(' '));
+    });
+    parts=out;
+  }else{
+    parts=t.split(/\s*[,;\n.]\s*|\s+(?:et puis|puis|ensuite|et aussi|aussi|et|plus|sans oublier|également)\s+/i);
+    parts=parts.flatMap(p=>p.split(/\s+(?=(?:du|de la|de l'|des|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)\s+\S)/i));
+  }
+  const seen=new Set(),res=[];
+  parts.forEach(p=>{
+    p=p.replace(/^(?:ensuite|puis|et puis|et|aussi|après)\s+/i,'');
+    if(mode!=='todo')p=p.replace(/^(?:acheter|racheter|prendre|commander)\s+/i,'');
+    p=p.replace(/\s*(?:s'il te plaît|s'il vous plaît|merci)\.?$/i,'').replace(/^(?:de |d')\s*/i,'').trim();
+    if(p.length<2)return;
+    const k=p.toLowerCase();if(seen.has(k))return;seen.add(k);
+    res.push(pbCap(p));
+  });
+  return res;
+}
+const PB_WD=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const PB_MO=['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+const PB_NUM={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,dix:10,quinze:15,vingt:20,trente:30};
+function pbParse(raw){
+  let t=' '+String(raw||'').toLowerCase().replace(/[’]/g,"'")+' ';
+  const cut=re=>{const f=pbFold(t),m=re.exec(f);if(!m)return null;t=t.slice(0,m.index)+' '+t.slice(m.index+m[0].length);return m};
+  const now=new Date();let due=null,H=null,M=0,off=null,dateSet=null,part=null,rel=false;
+  let m=cut(/\bdans\s+(\d+|un|une|deux|trois|quatre|cinq|dix|quinze|vingt|trente)\s+(minutes?|min|heures?|h|jours?|semaines?)\b/);
+  if(m){
+    const n=PB_NUM[m[1]]||parseInt(m[1],10)||1,u=m[2];
+    const ms=/^(min)/.test(u)?n*60000:/^(h)/.test(u)?n*3600000:/^j/.test(u)?n*86400000:n*604800000;
+    due=new Date(now.getTime()+ms);rel=true;
+  }
+  if(!rel){
+    if(cut(/\b(?:a\s+)?midi\b/))H=12;
+    else if(cut(/\b(?:a\s+)?minuit\b/))H=0;
+    else{
+      m=cut(/\b(?:a\s+)?(\d{1,2})\s*(?:h|heures?|:)\s*(\d{2})?/);
+      if(m){H=parseInt(m[1],10);M=m[2]?parseInt(m[2],10):0;if(H>24||M>59){H=null;M=0}}
+    }
+    if(cut(/\bdu soir\b|\bde l'apres[- ]midi\b/)){if(H!=null&&H<12)H+=12}
+    else cut(/\bdu matin\b/);
+    if(cut(/\bapres[- ]demain\b/))off=2;
+    else if(cut(/\bdemain\b/))off=1;
+    else if(cut(/\baujourd'hui\b|\bce jour\b/))off=0;
+    if(cut(/\bce soir\b/)){if(off==null)off=0;part=19}
+    else if(cut(/\bce matin\b/)){if(off==null)off=0;part=9}
+    else if(cut(/\bapres[- ]midi\b/))part=15;
+    else if(cut(/\bsoir\b/))part=19;
+    else if(cut(/\bmatin\b/))part=9;
+    m=cut(/\b(?:ce\s+|le\s+)?(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)(?:\s+prochain)?\b/);
+    if(m){const wd=PB_WD.indexOf(m[1]);let dl=(wd-now.getDay()+7)%7;if(dl===0)dl=7;off=dl}
+    m=cut(/\ble\s+(\d{1,2})(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/);
+    if(m){dateSet=new Date(now.getFullYear(),PB_MO.indexOf(m[2]),parseInt(m[1],10));if(dateSet<new Date(now.getFullYear(),now.getMonth(),now.getDate()))dateSet.setFullYear(dateSet.getFullYear()+1)}
+    else{
+      m=cut(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+      if(m){let y=m[3]?parseInt(m[3],10):now.getFullYear();if(y<100)y+=2000;dateSet=new Date(y,parseInt(m[2],10)-1,parseInt(m[1],10));if(!m[3]&&dateSet<new Date(now.getFullYear(),now.getMonth(),now.getDate()))dateSet.setFullYear(y+1)}
+      else{
+        m=cut(/\ble\s+(\d{1,2})(?:er)?\b/);
+        if(m){const dd=parseInt(m[1],10);if(dd>=1&&dd<=31){dateSet=new Date(now.getFullYear(),now.getMonth(),dd);if(dateSet<new Date(now.getFullYear(),now.getMonth(),now.getDate()))dateSet=new Date(now.getFullYear(),now.getMonth()+1,dd)}}
+      }
+    }
+    if(H==null&&part!=null)H=part;
+    const hasDay=off!=null||dateSet;
+    if(hasDay||H!=null){
+      let base=dateSet?new Date(dateSet):new Date(now.getFullYear(),now.getMonth(),now.getDate()+(off||0));
+      if(H==null)H=9;
+      base.setHours(H,M,0,0);
+      if(!hasDay&&base<=now)base.setDate(base.getDate()+1);
+      due=base;
+    }
+  }
+  let x=t.replace(/\s+/g,' ').trim();
+  x=x.replace(/^(?:(?:peux-tu |tu peux |pourrais-tu )?me )?rappel(?:le|ler|er)?(?:-?\s*moi)?\s*/i,'').replace(/^(?:de |d'|que |qu'|à |a )\s*/i,'').replace(/\s*(?:s'il te plaît|merci)\.?$/i,'').replace(/^[,.\s]+|[,.\s]+$/g,'');
+  x=x.replace(/^(?:de |d'|que |qu')\s*/i,'');
+  return {text:pbCap(x),due:due};
+}
+
+/* ---------- Écran du Perchoir ---------- */
+function pbCount(b){
+  const it=pbItems(b.id);
+  if(b.kind==='list'){const n=it.filter(i=>!i.done).length;return n?n+(n>1?' à faire':' à faire'):'Rien à faire'}
+  if(b.kind==='reminders'){const n=it.filter(i=>!i.notified).length;return n?n+(n>1?' à venir':' à venir'):'Aucun à venir'}
+  return it.length?it.length+(it.length>1?' notes':' note'):'Vide';
+}
+function renderPerch(){
+  const el=$('#v-perch');if(!el)return;
+  if(!PB.loaded){el.innerHTML='<div class="vhead"><h1 class="h1">Le Perchoir</h1></div><p class="small">Chargement…</p>';pbLoad();return}
+  if(PB.open&&!pbBox(PB.open))PB.open=null;
+  el.innerHTML=PB.open?pbBoxHTML(pbBox(PB.open)):pbHomeHTML();
+  renderTabs();
+}
+function pbHomeHTML(){
+  const boxes=PB.boxes.slice().sort((a,b)=>a.pos-b.pos);
+  return '<div class="vhead"><h1 class="h1">🪺 Le Perchoir</h1></div>'+
+    '<p class="small" style="margin:0 0 10px">Ton pense-bête perso. Parle ou écris, Pépie range.</p>'+
+    '<div class="pgrid">'+boxes.map(b=>'<button class="pbox" data-act="pbox" data-id="'+b.id+'"><span class="pe">'+esc(b.emoji)+'</span><b>'+esc(b.name)+'</b><small>'+esc(pbCount(b))+'</small></button>').join('')+
+    '<button class="pbox padd" data-act="pnew">＋ Nouvelle boîte</button></div>'+
+    '<button class="btn w100 pbig" data-act="pdict" data-mode="home">'+ico('mic',20)+'Noter à la voix</button>'+
+    '<p class="small" style="margin:8px 0 0">Astuce : dis « rappelle-moi demain à 18h d\'appeler le plombier » pour créer un rappel directement.</p>';
+}
+function pbBoxHTML(b){
+  const it=pbItems(b.id);
+  let h='<div class="vhead pbh"><button class="iconbtn" data-act="pback" aria-label="Retour">‹</button><h1 class="h1">'+esc(b.emoji)+' '+esc(b.name)+'</h1><button class="iconbtn" data-act="pmenu" aria-label="Options de la boîte">⋯</button></div>';
+  if(b.kind==='list'){
+    const todo=it.filter(i=>!i.done),done=it.filter(i=>i.done);
+    h+='<div class="padd2"><input id="pin" class="pinp" placeholder="Ajouter (ex : lait, pain)" aria-label="Ajouter"><button class="btn" data-act="pinadd">Ajouter</button></div>';
+    h+='<div class="plist">'+(todo.length?todo.map(pbItemHTML).join(''):'<p class="empty">Rien à faire ici 🎉</p>')+'</div>';
+    if(done.length)h+='<div class="sect">Fait · '+done.length+'</div><div class="plist">'+done.map(pbItemHTML).join('')+'</div><button class="btn ghost w100" data-act="pclear">Vider les éléments cochés</button>';
+    h+='<button class="btn w100 pbig" data-act="pdict" data-mode="list" data-id="'+b.id+'">'+ico('mic',20)+'Dicter une liste</button>'+
+       '<p class="small" style="margin:8px 0 0">Dis par exemple : « du lait, du pain et des pommes ». Chaque élément devient une case à cocher.</p>';
+  }else if(b.kind==='notes'){
+    h+='<div class="padd2"><input id="pin" class="pinp" placeholder="Écrire une note" aria-label="Note"><button class="btn" data-act="pinadd">Ajouter</button></div>';
+    h+='<div class="plist">'+(it.length?it.slice().reverse().map(n=>'<div class="pnote"><p>'+esc(n.text).replace(/\n/g,'<br>')+'</p><div class="pnr"><span>'+esc(new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}))+'</span><span><button class="pill" data-act="pclean" data-id="'+n.id+'">✨ Nettoyer</button><button class="pill" data-act="pedit" data-id="'+n.id+'">Modifier</button><button class="pill" data-act="pcopy" data-id="'+n.id+'">Copier</button></span></div></div>').join(''):'<p class="empty">Aucune note. Dicte la première !</p>')+'</div>';
+    h+='<button class="btn w100 pbig" data-act="pdict" data-mode="notes" data-id="'+b.id+'">'+ico('mic',20)+'Dicter une note</button>';
+  }else{
+    const up=it.filter(i=>!i.notified).sort((a,b2)=>new Date(a.fire_at||a.due)-new Date(b2.fire_at||b2.due)),past=it.filter(i=>i.notified).sort((a,b2)=>new Date(b2.due)-new Date(a.due));
+    const rowR=r=>'<div class="pit'+(r.notified?' pdone':'')+'"><button class="ptxt" data-act="prem" data-id="'+r.id+'"><b>'+esc(r.text)+'</b><small>⏰ '+esc(pbWhen(r.due))+(r.lead?' · alerte '+esc((PB_LEAD.find(l=>l[0]===r.lead)||[0,r.lead+' min avant'])[1]):'')+'</small></button><button class="px" data-act="pidel" data-id="'+r.id+'" aria-label="Supprimer">✕</button></div>';
+    h+='<div class="plist">'+(up.length?up.map(rowR).join(''):'<p class="empty">Aucun rappel à venir.</p>')+'</div>';
+    if(past.length)h+='<div class="sect">Passés</div><div class="plist">'+past.slice(0,10).map(rowR).join('')+'</div>';
+    h+=(S.push?'':'<p class="small" style="margin:6px 0">🔔 Active les notifications dans « Moi » pour recevoir tes rappels.</p>')+
+       '<button class="btn w100" data-act="prem" data-id="">＋ Nouveau rappel</button><button class="btn w100 pbig" data-act="pdict" data-mode="rem" data-id="'+b.id+'">'+ico('mic',20)+'Dicter un rappel</button>';
+  }
+  return h;
+}
+const pbItemHTML=i=>'<div class="pit'+(i.done?' pdone':'')+'"><button class="pck'+(i.done?' on':'')+'" data-act="pchk" data-id="'+i.id+'" aria-label="'+(i.done?'Décocher':'Cocher')+'">'+(i.done?'✓':'')+'</button><button class="ptxt" data-act="pedit" data-id="'+i.id+'"><b>'+esc(i.text)+'</b></button><button class="px" data-act="pidel" data-id="'+i.id+'" aria-label="Supprimer">✕</button></div>';
+
+/* ---------- Actions ---------- */
+function pbAdd(boxId,texts,extra){
+  const rows=texts.map(t=>Object.assign({id:uuid(),box:boxId,text:t.slice(0,4000),done:false,created_at:new Date().toISOString()},extra||{}));
+  rows.forEach(r=>PB.items.push(Object.assign({owner:myId,notified:false,lead:0,due:null,fire_at:null},r)));
+  renderPerch();
+  sb.from('perch_items').insert(rows.map(r=>Object.assign({},r,{created_at:undefined}))).then(r=>{if(pbErr(r))pbLoad(true)});
+}
+A.pbox=t=>{PB.open=t.dataset.id;renderPerch();$('#scroll').scrollTop=0};
+A.pback=()=>{PB.open=null;renderPerch();$('#scroll').scrollTop=0};
+A.pinadd=()=>{
+  const i=$('#pin'),b=pbBox(PB.open);if(!i||!b)return;
+  const v=i.value.trim();if(!v)return;
+  const parts=b.kind==='list'?v.split(/[,\n;]+/).map(x=>pbCap(x.trim())).filter(Boolean):[v];
+  i.value='';pbAdd(b.id,parts);
+  const j=$('#pin');if(j)j.focus();
+};
+document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='pin'&&e.key==='Enter'){e.preventDefault();A.pinadd()}});
+A.pchk=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
+  it.done=!it.done;renderPerch();
+  sb.from('perch_items').update({done:it.done}).eq('id',it.id).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pidel=t=>{
+  const id=t.dataset.id;PB.items=PB.items.filter(i=>i.id!==id);renderPerch();
+  sb.from('perch_items').delete().eq('id',id).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pclear=()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  const ids=pbItems(b.id).filter(i=>i.done).map(i=>i.id);if(!ids.length)return;
+  PB.items=PB.items.filter(i=>!ids.includes(i.id));renderPerch();
+  sb.from('perch_items').delete().in('id',ids).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pcopy=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
+  const ok=()=>toast('Copié 👍');
+  try{navigator.clipboard.writeText(it.text).then(ok,()=>toast('Copie impossible'))}catch(e){toast('Copie impossible')}
+};
+A.pclean=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
+  const n=pbClean(it.text);if(n===it.text){toast('Déjà propre ✨');return}
+  it.text=n;renderPerch();
+  sb.from('perch_items').update({text:n}).eq('id',it.id).then(r=>{if(pbErr(r))pbLoad(true)});
+  toast('Texte nettoyé ✨');
+};
+/* modifier un élément */
+A.pedit=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
+  openSheet(sheetHead('Modifier')+'<textarea id="peT" class="pta" rows="'+(it.text.length>80?6:2)+'" maxlength="4000">'+esc(it.text)+'</textarea>'+
+    '<div class="prow2"><button class="btn" data-act="pesave" data-id="'+it.id+'">Enregistrer</button><button class="btn ghost" data-act="pidelc" data-id="'+it.id+'">Supprimer</button></div>');
+};
+A.pesave=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id),v=($('#peT')||{}).value;if(!it||v==null)return;
+  const s=v.trim();if(!s){toast('Le texte est vide');return}
+  it.text=s;closeSheet();renderPerch();
+  sb.from('perch_items').update({text:s}).eq('id',it.id).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pidelc=t=>{closeSheet();A.pidel(t)};
+
+/* boîtes */
+A.pnew=()=>{
+  openSheet(sheetHead('Nouvelle boîte')+'<div class="group"><div class="lbl">Nom</div><input id="pnN" class="pinp" maxlength="40" placeholder="Ex : Cadeaux, Travaux…"></div>'+
+    '<div class="group"><div class="lbl">Icône</div><div class="chips" id="pnE">'+PB_EMO.map((e,i)=>'<button class="chip" data-act="pnemo" data-e="'+e+'" aria-pressed="'+(i===0)+'">'+e+'</button>').join('')+'</div></div>'+
+    '<div class="group"><div class="lbl">Type</div><div class="chips" id="pnK">'+Object.keys(PB_KIND).map((k,i)=>'<button class="chip" data-act="pnkind" data-k="'+k+'" aria-pressed="'+(i===0)+'">'+PB_KIND[k]+'</button>').join('')+'</div></div>'+
+    '<button class="btn w100" data-act="pnok">Créer la boîte</button>');
+};
+A.pnemo=t=>{document.querySelectorAll('#pnE .chip').forEach(c=>c.setAttribute('aria-pressed',String(c===t)))};
+A.pnkind=t=>{document.querySelectorAll('#pnK .chip').forEach(c=>c.setAttribute('aria-pressed',String(c===t)))};
+A.pnok=()=>{
+  const name=(($('#pnN')||{}).value||'').trim();if(!name){toast('Donne un nom à la boîte');return}
+  const e=(document.querySelector('#pnE [aria-pressed=true]')||{dataset:{e:'📦'}}).dataset.e,k=(document.querySelector('#pnK [aria-pressed=true]')||{dataset:{k:'list'}}).dataset.k;
+  const b={id:uuid(),name:name,emoji:e,kind:k,pos:PB.boxes.length};
+  PB.boxes.push(Object.assign({owner:myId},b));closeSheet();PB.open=b.id;renderPerch();
+  sb.from('perch_boxes').insert(b).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pmenu=()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  openSheet(sheetHead('Cette boîte')+'<div class="group"><div class="lbl">Nom</div><input id="pmN" class="pinp" maxlength="40" value="'+esc(b.name)+'"></div>'+
+    '<div class="group"><div class="lbl">Icône</div><div class="chips" id="pnE">'+PB_EMO.map(e=>'<button class="chip" data-act="pnemo" data-e="'+e+'" aria-pressed="'+(e===b.emoji)+'">'+e+'</button>').join('')+'</div></div>'+
+    '<div class="prow2"><button class="btn" data-act="pmok">Enregistrer</button><button class="btn ghost" data-act="pmdel1">Supprimer la boîte</button></div>');
+};
+A.pmok=()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  const name=(($('#pmN')||{}).value||'').trim();if(!name){toast('Le nom est vide');return}
+  const sel=document.querySelector('#pnE [aria-pressed=true]');
+  b.name=name;if(sel)b.emoji=sel.dataset.e;closeSheet();renderPerch();
+  sb.from('perch_boxes').update({name:b.name,emoji:b.emoji}).eq('id',b.id).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+A.pmdel1=()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  const n=pbItems(b.id).length;
+  setSheet(sheetHead('Supprimer la boîte ?')+'<p class="small" style="margin:0">« '+esc(b.name)+' » et ses '+n+' élément'+(n>1?'s':'')+' seront supprimés définitivement.</p>'+
+    '<div class="prow2"><button class="btn" data-act="pmdel2">Oui, supprimer</button><button class="btn ghost" data-act="close">Annuler</button></div>');
+};
+A.pmdel2=()=>{
+  const b=pbBox(PB.open);if(!b)return;
+  PB.boxes=PB.boxes.filter(x=>x.id!==b.id);PB.items=PB.items.filter(i=>i.box!==b.id);PB.open=null;closeSheet();renderPerch();
+  sb.from('perch_boxes').delete().eq('id',b.id).then(r=>{if(pbErr(r))pbLoad(true)});
+};
+
+/* ---------- Rappels ---------- */
+function pbRemSheet(it,pre){
+  const d=it&&it.due?new Date(it.due):(pre&&pre.due?pre.due:null);
+  const text=it?it.text:(pre&&pre.text)||'';
+  const dt=d||new Date(Date.now()+3600000);
+  const lead=it?it.lead:0;
+  openSheet(sheetHead(it?'Modifier le rappel':'Nouveau rappel')+
+    '<div class="group"><div class="lbl">Quoi ?</div><textarea id="rmT" class="pta" rows="2" maxlength="500" placeholder="Ex : Appeler le plombier">'+esc(text)+'</textarea></div>'+
+    '<div class="prow2"><div class="group" style="flex:1"><div class="lbl">Jour</div><input id="rmD" class="pinp" type="date" value="'+pbYMD(dt)+'"></div><div class="group" style="flex:1"><div class="lbl">Heure</div><input id="rmH" class="pinp" type="time" value="'+pbHM(dt)+'"></div></div>'+
+    '<div class="group"><div class="lbl">Me prévenir</div><select id="rmL" class="pinp">'+PB_LEAD.map(l=>'<option value="'+l[0]+'"'+(l[0]===lead?' selected':'')+'>'+l[1]+'</option>').join('')+'</select></div>'+
+    (S.push?'':'<p class="small" style="margin:0">🔔 Les notifications sont désactivées : active-les dans « Moi » pour être prévenu.</p>')+
+    '<div class="prow2"><button class="btn" data-act="rmsave" data-id="'+(it?it.id:'')+'">Enregistrer</button>'+(it?'<button class="btn ghost" data-act="pidelc" data-id="'+it.id+'">Supprimer</button>':'')+'</div>');
+}
+A.prem=t=>{const it=t.dataset.id?PB.items.find(i=>i.id===t.dataset.id):null;pbRemSheet(it)};
+A.rmsave=t=>{
+  const text=(($('#rmT')||{}).value||'').trim(),dv=($('#rmD')||{}).value,hv=($('#rmH')||{}).value,lead=parseInt(($('#rmL')||{}).value,10)||0;
+  if(!text){toast('Dis de quoi te rappeler');return}
+  const due=new Date(dv+'T'+(hv||'09:00'));if(isNaN(due)){toast('Date ou heure invalide');return}
+  const fire=new Date(due.getTime()-lead*60000);
+  const box=PB.boxes.find(b=>b.kind==='reminders');if(!box&&!t.dataset.id){toast('Crée d\'abord une boîte de rappels');return}
+  const f={text:text,due:due.toISOString(),lead:lead,fire_at:fire.toISOString(),notified:false};
+  if(t.dataset.id){
+    const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;Object.assign(it,f);closeSheet();renderPerch();
+    sb.from('perch_items').update(f).eq('id',it.id).then(r=>{if(pbErr(r))pbLoad(true)});
+  }else{
+    closeSheet();
+    const bid=(PB.open&&pbBox(PB.open)&&pbBox(PB.open).kind==='reminders')?PB.open:box.id;
+    PB.open=bid;
+    pbAdd(bid,[text],{due:f.due,lead:f.lead,fire_at:f.fire_at,notified:false});
+  }
+  toast(fire<=new Date()?'Rappel créé (déjà passé : il part tout de suite)':'Rappel programmé ⏰');
+};
+
+/* ---------- Dictée ---------- */
+const PBD={mode:'',box:''};
+A.pdict=t=>{
+  PBD.mode=t.dataset.mode;PBD.box=t.dataset.id||'';
+  const hint={home:'Dis une note, ou « rappelle-moi demain à 18h de… ».',list:'Dis les éléments à la suite : « du lait, du pain et des pommes ».',notes:'Dis ta note, comme dans un message vocal.',rem:'Ex : « rappelle-moi demain à 18h d\'appeler le plombier ».'}[PBD.mode]||'';
+  openSheet(sheetHead('Je t\'écoute')+'<div class="pdl" id="pdl">…</div><p class="small" style="margin:0">'+esc(hint)+'</p>'+
+    '<div class="prow2"><button class="btn" data-act="pdstop">'+ico('check',18).replace(/^$/,'')+'Terminer</button><button class="btn ghost" data-act="close">Annuler</button></div>');
+  CAP={rec:true};
+  recStart({max:180,live:s=>{const e=$('#pdl');if(e)e.textContent=s||'…'},tick:()=>{},done:r=>{
+    if(!CAP||!CAP.rec)return;CAP=null;
+    const txt=(r.text||'').trim();
+    if(!txt){setSheet(sheetHead('Rien entendu')+'<p class="small" style="margin:0">Je n\'ai rien entendu. Vérifie que le micro est autorisé, puis réessaie.</p><button class="btn w100" data-act="close">OK</button>');return}
+    pbdResult(txt);
+  }});
+};
+A.pdstop=()=>{if(R.on)recStop()};
+function pbdResult(txt){
+  let mode=PBD.mode,box=pbBox(PBD.box);
+  if(mode==='home'){
+    if(/^\s*(?:peux-tu |tu peux )?(?:me )?rappel/i.test(txt))mode='rem';
+    else{box=PB.boxes.find(b=>b.name==='En vrac')||PB.boxes.find(b=>b.kind==='notes');mode='notes'}
+  }
+  if(mode==='rem'){
+    const p=pbParse(txt);
+    PBD.box=(box&&box.kind==='reminders'?box.id:(PB.boxes.find(b=>b.kind==='reminders')||{}).id)||'';
+    pbRemSheet(null,{text:p.text||pbCap(txt),due:p.due});
+    if(!p.due)toast('Je n\'ai pas compris la date : choisis-la ci-dessous');
+    return;
+  }
+  if(!box)return;
+  PBD.box=box.id;
+  if(mode==='list'){
+    const todo=/faire|tâche|tache|todo|projet|travaux/i.test(box.name);
+    const items=pbSplit(txt,todo?'todo':'shop');
+    setSheet(sheetHead('Vérifie la liste')+'<p class="small" style="margin:0">Un élément par ligne. Corrige si besoin.</p><textarea id="pvT" class="pta" rows="'+Math.min(10,Math.max(4,items.length+1))+'">'+esc(items.join('\n'))+'</textarea>'+
+      '<div class="prow2"><button class="btn" data-act="pvok" data-mode="list">Ajouter</button><button class="btn ghost" data-act="pdict" data-mode="list" data-id="'+box.id+'">Redicter</button></div>');
+  }else{
+    setSheet(sheetHead('Vérifie la note')+'<textarea id="pvT" class="pta" rows="8">'+esc(pbClean(txt))+'</textarea>'+
+      '<div class="prow2"><button class="btn" data-act="pvok" data-mode="notes">Enregistrer</button><button class="btn ghost" data-act="pdict" data-mode="notes" data-id="'+box.id+'">Redicter</button></div>');
+  }
+}
+A.pvok=t=>{
+  const v=(($('#pvT')||{}).value||'').trim();if(!v){toast('Rien à ajouter');return}
+  const b=pbBox(PBD.box);if(!b)return;
+  const parts=t.dataset.mode==='list'?v.split('\n').map(x=>x.trim()).filter(Boolean):[v];
+  closeSheet();PB.open=b.id;pbAdd(b.id,parts);
+  toast(parts.length>1?parts.length+' éléments ajoutés ✔':'Ajouté ✔');
+};
+
+/* ---------- Navigation : on recharge à l'ouverture ---------- */
+function perchEnter(){PB.open=null;renderPerch();pbLoad(true)}
 /* =====================================================================
    Pépie v7 : données personnelles (export, suppression), signalement
    ===================================================================== */
@@ -4968,7 +5382,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792654270';
+const BUILD='1792675705';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
