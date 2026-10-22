@@ -5079,7 +5079,15 @@ function pbSplit(text,mode){
     parts=out;
   }else{
     parts=t.split(/\s*[,;\n.]\s*|\s+(?:et puis|puis|ensuite|et aussi|aussi|et|plus|sans oublier|également)\s+/i);
-    parts=parts.flatMap(p=>p.split(/\s+(?=(?:du|de la|de l'|des|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)\s+\S)/i));
+    const one=parts.length===1;
+    parts=parts.flatMap(p=>p.split(/\s+(?=(?:(?:du|de la|des|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze|\d+)\s+\S|de l['’]\S))/i));
+    /* sans article ni séparateur (« lait pain beurre œufs ») : un mot = un article, sauf les noms composés connus */
+    if(one&&parts.length===1&&/\s/.test(parts[0])&&!/(?:^|\s)(?:de|d'|du|des|à|au|aux|en|pour|sans|avec|sur|la|le|les|l'|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze)(?:\s|$)|\d/i.test(parts[0])){
+      let q=parts[0];
+      PB_MULTI.forEach(m=>{q=q.replace(new RegExp('(?:^|(?<=\\s))'+m.replace(/ /g,'\\s+')+'(?=\\s|$)','gi'),x=>x.replace(/\s+/g,'\u0001'))});
+      const w=q.split(/\s+/);
+      if(w.length>=2&&w.length<=12)parts=w.map(x=>x.replace(/\u0001/g,' '));
+    }
   }
   const seen=new Set(),res=[];
   parts.forEach(p=>{
@@ -5092,6 +5100,7 @@ function pbSplit(text,mode){
   });
   return res;
 }
+const PB_MULTI=['papier toilette','papier cul','liquide vaisselle','produit vaisselle','pâte à tartiner','pâtes à tartiner','sac poubelle','sacs poubelle','crème fraîche','crème fraiche','petits pois','petit pois','haricots verts','haricots rouges','jus d\'orange','eau gazeuse','lait de coco','pain de mie','fromage râpé','jambon blanc','jambon cru','poulet rôti','pommes de terre','pomme de terre','huile d\'olive','essuie tout','brosse à dents','lessive liquide','sel fin','gros sel','café moulu','thé vert','beurre doux','beurre salé','œufs bio','oeufs bio','lait demi-écrémé','yaourt nature','yaourts nature','tablettes lave-vaisselle','coton tige','cotons tiges','shampoing douche','gel douche','pain complet','riz basmati','sauce tomate','concentré de tomate','mais doux','maïs doux'];
 const PB_WD=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 const PB_MO=['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
 const PB_NUM={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,dix:10,quinze:15,vingt:20,trente:30};
@@ -5218,7 +5227,8 @@ A.pback=()=>{PB.open=null;renderPerch();$('#scroll').scrollTop=0};
 A.pinadd=()=>{
   const i=$('#pin'),b=pbBox(PB.open);if(!i||!b)return;
   const v=i.value.trim();if(!v)return;
-  const parts=b.kind==='list'?v.split(/[,\n;]+/).map(x=>pbCap(x.trim())).filter(Boolean):[v];
+  const parts=b.kind==='list'?pbSplit(v,/faire|tâche|tache|todo|projet|travaux/i.test(b.name)?'todo':'shop'):[v];
+  if(!parts.length)return;
   i.value='';pbAdd(b.id,parts);
   const j=$('#pin');if(j)j.focus();
 };
@@ -5254,7 +5264,16 @@ A.pclean=t=>{
 A.pedit=t=>{
   const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
   openSheet(sheetHead('Modifier')+'<textarea id="peT" class="pta" rows="'+(it.text.length>80?6:2)+'" maxlength="4000">'+esc(it.text)+'</textarea>'+
+    (pbSplitMode(it)&&pbSplit(it.text,pbSplitMode(it)).length>1?'<button class="btn ghost w100" data-act="pesplit" data-id="'+it.id+'">✂️ Séparer en '+pbSplit(it.text,pbSplitMode(it)).length+' éléments</button>':'')+
     '<div class="prow2"><button class="btn" data-act="pesave" data-id="'+it.id+'">Enregistrer</button><button class="btn ghost" data-act="pidelc" data-id="'+it.id+'">Supprimer</button></div>');
+};
+const pbSplitMode=it=>{const b=pbBox(it.box);return b&&b.kind==='list'?(/faire|tâche|tache|todo|projet|travaux/i.test(b.name)?'todo':'shop'):null};
+A.pesplit=t=>{
+  const it=PB.items.find(i=>i.id===t.dataset.id);if(!it)return;
+  const mode=pbSplitMode(it),parts=mode?pbSplit(it.text,mode):[];if(parts.length<2)return;
+  closeSheet();PB.items=PB.items.filter(i=>i.id!==it.id);
+  sb.from('perch_items').delete().eq('id',it.id).then(r=>{if(pbErr(r))pbLoad(true)});
+  pbAdd(it.box,parts);toast(parts.length+' éléments ✔');
 };
 A.pesave=t=>{
   const it=PB.items.find(i=>i.id===t.dataset.id),v=($('#peT')||{}).value;if(!it||v==null)return;
@@ -5794,7 +5813,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792683823';
+const BUILD='1792684477';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
