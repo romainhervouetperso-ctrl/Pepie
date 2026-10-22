@@ -5384,6 +5384,7 @@ const pbdReason=()=>{
 A.pdict=t=>{
   PBD.mode=t.dataset.mode;PBD.box=t.dataset.id||'';
   const hint={home:'Dis une note, ou « rappelle-moi demain à 18h de… ».',list:'Dis les éléments à la suite : « du lait, du pain et des pommes ».',notes:'Dis ta note, comme dans un message vocal.',rem:'Ex : « rappelle-moi demain à 18h d\'appeler le plombier ».'}[PBD.mode]||'';
+  if(pbIosPwa()||!SR){openSheet('');pbdKb(true);return}
   openSheet(sheetHead('Je t\'écoute')+'<div style="text-align:center">'+mascot('listen',64)+'</div><div class="pdl" id="pdl">…</div><p class="small" id="pdst" style="margin:0">🎙️ Micro en cours d\'ouverture…</p><p class="small" style="margin:0">'+esc(hint)+'</p>'+
     '<div class="prow2"><button class="btn" data-act="pdstop">Terminer</button><button class="btn ghost" data-act="pdtype">Écrire à la place</button></div>');
   CAP={rec:true};
@@ -5407,9 +5408,19 @@ A.pdict=t=>{
       pbdResult(tx);
     }});
 };
+const pbIosPwa=()=>isIOS&&(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
+function pbdKb(first){
+  const hint=({home:'Dis ou écris ta note, ou « rappelle-moi demain à 18h de… ».',list:'Dis ou écris les éléments à la suite : « du lait, du pain et des pommes ».',notes:'Dis ou écris ta note.',rem:'Ex : « rappelle-moi demain à 18h d\'appeler le plombier ».'})[PBD.mode]||'';
+  setSheet(sheetHead(first?'Dicter avec le clavier':'Écrire')+
+    (first?'<p class="small" style="margin:0">Sur iPhone, Pépie installée sur l\'écran d\'accueil ne peut pas écouter directement. <b>Touche le micro 🎤 de ton clavier</b> et parle : c\'est l\'iPhone qui transcrit, puis Pépie range le texte.</p>':'')+
+    '<textarea id="pkT" class="pta" rows="5" placeholder="Touche 🎤 sur le clavier, puis parle…"></textarea><p class="small" style="margin:0">'+esc(hint)+'</p>'+
+    '<button class="btn w100" data-act="pdkbok">Continuer</button>');
+  const t=$('#pkT');if(t)try{t.focus()}catch(e){}
+}
+A.pdkbok=()=>{const v=(($('#pkT')||{}).value||'').trim();if(!v){toast('Écris ou dicte quelque chose');return}pbdResult(v)};
 A.pdtype=()=>{
   clearInterval(pdIv);CAP=null;recKill();
-  pbdResult('');
+  pbdKb(false);
 };
 A.pdstop=()=>{if(R.on)recStop()};
 function pbdResult(txt){
@@ -5783,7 +5794,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792683543';
+const BUILD='1792683823';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
