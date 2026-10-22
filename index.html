@@ -1429,7 +1429,7 @@ function pickMime(){
 }
 function recStart(ui){
   recKill();
-  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();R.chunks=[];R.mime='';R.audioFail=false;R.srFail=false;
+  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();R.chunks=[];R.mime='';R.audioFail=false;R.srFail=false;R.srErr='';R.micErr='';
   R.iv=setInterval(recTick,250);recTick();
   /* 1. enregistrement de la vraie voix */
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder){
@@ -1441,7 +1441,7 @@ function recStart(ui){
         mr.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data)};
         mr.start(500);R.mr=mr;R.got=true;
       }catch(e){micDrop();R.audioFail=true;recFailCheck()}
-    }).catch(()=>{R.audioFail=true;recFailCheck()});
+    }).catch(e=>{R.micErr=(e&&e.name)||'err';R.audioFail=true;recFailCheck()});
   }else{R.audioFail=true}
   /* 2. transcription en direct */
   if(SR){
@@ -1455,7 +1455,7 @@ function recStart(ui){
         R.text=(fin+it).trim();if(R.ui&&R.ui.live)R.ui.live(R.text);
       };
       r.onend=()=>{if(R.on&&R.rec===r&&!R.srFail){setTimeout(()=>{try{if(R.on&&R.rec===r)r.start()}catch(e){}},150)}};
-      r.onerror=e=>{if(R.on&&!R.demo&&e&&/not-allowed|service-not-allowed|audio-capture|language-not-supported/.test(e.error)){R.srFail=true;recFailCheck()}};
+      r.onerror=e=>{if(e&&e.error)R.srErr=e.error;if(R.on&&!R.demo&&e&&/not-allowed|service-not-allowed|audio-capture|language-not-supported/.test(e.error)){R.srFail=true;recFailCheck()}};
       r.start();
     }catch(e){R.srFail=true}
   }else R.srFail=true;
@@ -5372,18 +5372,44 @@ A.rmsave=t=>{
 
 /* ---------- Dictée ---------- */
 const PBD={mode:'',box:''};
+let pdIv=0;
+const pbdReason=()=>{
+  if(R.micErr==='NotAllowedError'||R.micErr==='SecurityError'||R.srErr==='not-allowed'||R.srErr==='service-not-allowed')return "Le micro est bloqué pour Pépie : autorise-le dans les réglages du navigateur (cadenas près de l'adresse, ou Réglages › Safari › Micro).";
+  if(R.srErr==='network')return "La reconnaissance vocale a besoin d'une connexion internet.";
+  if(R.srErr==='language-not-supported')return "La langue française n'est pas disponible pour la dictée sur ce téléphone.";
+  if(!SR)return "Ce navigateur ne sait pas transcrire la voix (essaie Chrome ou Safari, hors mode installé).";
+  if(R.micErr==='NotFoundError')return "Aucun micro n'a été trouvé.";
+  return "Je n'ai pas entendu de paroles. Parle un peu plus près, puis réessaie.";
+};
 A.pdict=t=>{
   PBD.mode=t.dataset.mode;PBD.box=t.dataset.id||'';
   const hint={home:'Dis une note, ou « rappelle-moi demain à 18h de… ».',list:'Dis les éléments à la suite : « du lait, du pain et des pommes ».',notes:'Dis ta note, comme dans un message vocal.',rem:'Ex : « rappelle-moi demain à 18h d\'appeler le plombier ».'}[PBD.mode]||'';
-  openSheet(sheetHead('Je t\'écoute')+'<div style="text-align:center">'+mascot('listen',64)+'</div><div class="pdl" id="pdl">…</div><p class="small" style="margin:0">'+esc(hint)+'</p>'+
-    '<div class="prow2"><button class="btn" data-act="pdstop">'+ico('check',18).replace(/^$/,'')+'Terminer</button><button class="btn ghost" data-act="close">Annuler</button></div>');
+  openSheet(sheetHead('Je t\'écoute')+'<div style="text-align:center">'+mascot('listen',64)+'</div><div class="pdl" id="pdl">…</div><p class="small" id="pdst" style="margin:0">🎙️ Micro en cours d\'ouverture…</p><p class="small" style="margin:0">'+esc(hint)+'</p>'+
+    '<div class="prow2"><button class="btn" data-act="pdstop">Terminer</button><button class="btn ghost" data-act="pdtype">Écrire à la place</button></div>');
   CAP={rec:true};
-  recStart({max:180,live:s=>{const e=$('#pdl');if(e)e.textContent=s||'…'},tick:()=>{},done:r=>{
-    if(!CAP||!CAP.rec)return;CAP=null;
-    const txt=(r.text||'').trim();
-    if(!txt){setSheet(sheetHead('Rien entendu')+'<p class="small" style="margin:0">Je n\'ai rien entendu. Vérifie que le micro est autorisé, puis réessaie.</p><button class="btn w100" data-act="close">OK</button>');return}
-    pbdResult(txt);
-  }});
+  let txt='',last=Date.now(),t0=Date.now();
+  clearInterval(pdIv);
+  pdIv=setInterval(()=>{
+    if(!R.on||!CAP||!CAP.rec){clearInterval(pdIv);return}
+    const st=$('#pdst');
+    if(!txt){if(st&&Date.now()-t0>4000)st.textContent='Je n\'entends rien pour l\'instant… parle près du micro.';return}
+    /* quelques secondes de silence après avoir parlé : on considère que c'est fini */
+    if(Date.now()-last>((PBD.mode==='notes'||PBD.mode==='home')?6000:3200))recStop();
+  },400);
+  recStart({max:180,
+    live:s=>{txt=s||'';last=Date.now();const e=$('#pdl');if(e)e.textContent=s||'…';const st=$('#pdst');if(st&&s)st.textContent='✅ Je t\'entends. Fais une pause pour terminer, ou touche « Terminer ».'},
+    tick:()=>{const st=$('#pdst');if(st&&!txt&&R.mr&&Date.now()-t0<4000)st.textContent='🎙️ Je t\'écoute…'},
+    done:r=>{
+      clearInterval(pdIv);
+      if(!CAP||!CAP.rec)return;CAP=null;
+      const tx=(r.text||'').trim();
+      if(!tx){setSheet(sheetHead('Rien entendu')+'<p class="small" style="margin:0">'+esc(pbdReason())+'</p><div class="prow2"><button class="btn" data-act="pdict" data-mode="'+PBD.mode+'" data-id="'+PBD.box+'">Réessayer</button><button class="btn ghost" data-act="pdtype">Écrire à la place</button></div>');return}
+      pbdResult(tx);
+    }});
+};
+A.pdtype=()=>{
+  clearInterval(pdIv);CAP=null;recKill();
+  pbdResult('');
 };
 A.pdstop=()=>{if(R.on)recStop()};
 function pbdResult(txt){
@@ -5757,7 +5783,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792679816';
+const BUILD='1792683543';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
