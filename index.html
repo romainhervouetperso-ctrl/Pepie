@@ -4984,7 +4984,16 @@ function appBadge(){
     else if(navigator.clearAppBadge)navigator.clearAppBadge().catch(()=>{});
   }catch(e){}
 }
-setInterval(appBadge,2000);
+/* appli ouverte : on retire les notifications déjà affichées (sauf rappels du Perchoir) */
+async function notifSweep(){
+  try{
+    if(document.visibilityState!=='visible'||!navigator.serviceWorker)return;
+    const reg=await navigator.serviceWorker.getRegistration();if(!reg)return;
+    const l=await reg.getNotifications();
+    l.forEach(x=>{if(!(x.data&&x.data.perch))x.close()});
+  }catch(e){}
+}
+setInterval(()=>{appBadge();notifSweep()},2000);
 document.addEventListener('visibilitychange',()=>{badgeLast=-1;appBadge()});
 /* =====================  LE PERCHOIR : pense-bête perso (courses, à faire, idées, rappels)  ===================== */
 const PB={boxes:[],items:[],members:[],loaded:false,loading:false,open:null,sig:''};
@@ -5834,7 +5843,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792686643';
+const BUILD='1792752316';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;

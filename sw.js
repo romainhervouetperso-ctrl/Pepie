@@ -1,4 +1,4 @@
-/* Pépie : notifications push + pastille sur l'icône (v3) */
+/* Pépie : notifications push + pastille sur l'icône (v4) */
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 async function badgeSync(){
@@ -17,11 +17,12 @@ self.addEventListener('push',e=>{
       await self.registration.showNotification(d.title||'Rappel',{body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.tag||'perch',data:{conv:'',n:1,perch:1},requireInteraction:true});
       await badgeSync();return;
     }
-    if(cl.some(c=>c.visibilityState==='visible'))return;
+    /* on affiche TOUJOURS la notification : iOS la retire si on ne l'affiche pas, et il se trompe souvent sur « l'appli est visible » */
+    const vis=cl.some(c=>c.visibilityState==='visible'&&c.focused);
     const tag=d.conv||'pepie';let n=1;
     try{const ex=await self.registration.getNotifications({tag:tag});if(ex.length&&ex[0].data&&ex[0].data.n)n=ex[0].data.n+1}catch(_){}
     const body=n>1?n+' nouveaux messages · '+(d.body||''):(d.body||'');
-    await self.registration.showNotification(d.title||'Pépie',{body:body,icon:'icon-192.png',badge:'icon-192.png',tag:tag,renotify:true,data:{conv:d.conv||'',n:n}});
+    await self.registration.showNotification(d.title||'Pépie',{body:body,icon:'icon-192.png',badge:'icon-192.png',tag:tag,renotify:!vis,silent:vis,data:{conv:d.conv||'',n:n}});
     await badgeSync();
   })());
 });
