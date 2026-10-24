@@ -5238,7 +5238,8 @@ A.pback=()=>{PB.open=null;renderPerch();$('#scroll').scrollTop=0};
 A.pinadd=()=>{
   const i=$('#pin'),b=pbBox(PB.open);if(!i||!b)return;
   const v=i.value.trim();if(!v)return;
-  const parts=b.kind==='list'?pbSplit(v,/faire|tâche|tache|todo|projet|travaux/i.test(b.name)?'todo':'shop'):[v];
+  /* saisie au clavier : on ne sépare QUE sur une virgule, un point-virgule, un point ou un retour à la ligne */
+  const parts=b.kind==='list'?v.split(/\s*[,;\n]+\s*|\.\s+|\.$/).map(x=>pbCap(x.trim().replace(/\.$/,''))).filter(x=>x&&x.length>0):[v];
   if(!parts.length)return;
   i.value='';pbAdd(b.id,parts);
   const j=$('#pin');if(j)j.focus();
@@ -5843,7 +5844,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792752316';
+const BUILD='1792844691';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
