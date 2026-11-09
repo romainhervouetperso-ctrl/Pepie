@@ -1417,13 +1417,25 @@ function recRelease(){
   try{if(R.mr){R.mr.ondataavailable=null;R.mr.onstop=null;if(R.mr.state!=='inactive')R.mr.stop()}}catch(e){}
   micIdle();
   R.mr=null;R.stream=null;
+  try{if(R.wl){R.wl.release();R.wl=null}}catch(e){}
 }
 function recKill(){
   recClear();if(typeof obRecDel==='function')obRecDel();
   try{if(R.rec){R.rec.onend=null;R.rec.onerror=null;R.rec.abort()}}catch(e){}
   R.rec=null;R.on=false;recRelease();R.chunks=[];
 }
+/* Le téléphone peut couper le micro en cours d'enregistrement (écran qui se verrouille, appel, Siri…) : on le détecte tout de suite */
+function recWake(){try{if(navigator.wakeLock&&!R.wl)navigator.wakeLock.request('screen').then(l=>{if(R.on)R.wl=l;else l.release()}).catch(()=>{})}catch(e){}}
+function recStall(why){
+  if(!R.on||R.demo||R.stalled||!R.mr)return;
+  R.stalled=true;R.stallWhy=why;
+  try{toast('⚠️ Le téléphone a coupé le micro : rien n\'est enregistré. Garde l\'écran allumé, arrête puis recommence.',9000)}catch(e){}
+  try{if(navigator.vibrate)navigator.vibrate([120,80,120])}catch(e){}
+  if(R.ui&&R.ui.warn)try{R.ui.warn()}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(R.on&&document.visibilityState==='visible')recWake()});
 function recTick(){
+  if(R.on&&R.mr&&R.mr.state==='recording'&&!R.stalled&&Date.now()-R.lastData>3500)recStall('silence');
   const s=Math.floor((Date.now()-R.t0)/1000);
   if(R.ui&&R.ui.tick)R.ui.tick(s);
   if(s>=((R.ui&&R.ui.max)||60))recStop();
@@ -1446,7 +1458,7 @@ function pickMime(){
 }
 function recStart(ui){
   recKill();
-  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();R.chunks=[];R.mime='';R.audioFail=false;R.srFail=false;R.srErr='';R.micErr='';
+  R.on=true;R.ui=ui;R.text='';R.demo=false;R.got=false;R.t0=Date.now();R.chunks=[];R.bytes=0;R.lastData=Date.now();R.stalled=false;R.mime='';R.audioFail=false;R.srFail=false;R.srErr='';R.micErr='';
   R.iv=setInterval(recTick,250);recTick();
   /* 1. enregistrement de la vraie voix */
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder){
@@ -1455,8 +1467,9 @@ function recStart(ui){
       try{
         const mt=pickMime(),mr=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:48000}:{audioBitsPerSecond:48000});
         R.stream=stream;R.mime=(mr.mimeType||mt||'audio/webm').split(';')[0];
-        mr.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data)};
-        mr.start(500);R.mr=mr;R.got=true;
+        mr.ondataavailable=e=>{if(e.data&&e.data.size){R.chunks.push(e.data);R.bytes+=e.data.size;R.lastData=Date.now()}};
+        try{stream.getAudioTracks().forEach(t=>{t.onended=t.onmute=()=>recStall('piste')})}catch(e){}
+        mr.start(500);R.mr=mr;R.got=true;R.lastData=Date.now();recWake();
       }catch(e){micDrop();R.audioFail=true;recFailCheck()}
     }).catch(e=>{R.micErr=(e&&e.name)||'err';R.audioFail=true;recFailCheck()});
   }else{R.audioFail=true}
@@ -1482,13 +1495,15 @@ function recStart(ui){
 function recStop(){
   if(!R.on)return;
   recClear();
-  const ui=R.ui,dur=Math.max(1,Math.round((Date.now()-R.t0)/1000));
+  let dur=Math.max(1,Math.round((Date.now()-R.t0)/1000));const ui=R.ui;
   let done=false;
   const pend={sr:!!R.rec,mr:!!(R.mr&&R.mr.state!=='inactive')};
   const fin=()=>{
     if(done||pend.sr||pend.mr)return;
     done=true;
     const blob=R.chunks.length?new Blob(R.chunks,{type:R.mime||'audio/webm'}):null,mime=R.mime||'audio/webm',text=R.text.trim();
+    /* enregistrement incomplet : on corrige la durée affichée et on prévient */
+    if(blob&&dur>=6&&R.bytes<dur*1200){dur=Math.max(1,Math.round(R.bytes/6000));try{toast('⚠️ Enregistrement incomplet : seulement ~'+dur+' s captées (micro coupé par le téléphone). Pense à garder l\'écran allumé.',9000)}catch(e){}}
     R.on=false;R.rec=null;recRelease();R.chunks=[];if(typeof obRecDel==='function')obRecDel();
     if(ui&&ui.done)ui.done({text:text,dur:dur,blob:blob,mime:mime});
   };
@@ -5956,7 +5971,7 @@ A.repgo=async t=>{
 };
 
 /* ---------- Mise à jour automatique ---------- */
-const BUILD='1792848558';
+const BUILD='1794218429';
 async function checkUpdate(){
   try{
     if(typeof chatRec!=='undefined'&&chatRec)return;
